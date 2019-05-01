@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <stdbool.h>
 
+#define debug 0
+
 const int MAXLEN = 256;
 
 void removeNewline(char device[MAXLEN]){
@@ -24,9 +26,10 @@ void removeNewline(char device[MAXLEN]){
 
 
     device = tmp;
-    printf("%s\n", device);
-    printf("%s\n", tmp);
-
+#ifdef debug
+    printf("%s \n", "quello di nl");
+    printf("%s \n", device);
+#endif
 }
 
 
@@ -37,8 +40,14 @@ bool list(){
 }
 
 bool add(char device[MAXLEN]){
+#ifdef debug
+    printf("%s \n", device);
+#endif
     removeNewline(device);
     bool status = true;
+#ifdef debug
+    printf("%s \n", device);
+#endif
 
     if(strcmp(device, "hub") == 0) {
 
@@ -80,7 +89,7 @@ int main(int argc, char *argv[]) {
     char buffer[MAXLEN];
     char * tokens[MAXLEN];
 
-    int status = 1;
+    int status = 1; //Contains output of various operations
 
     while (1) {
 
@@ -97,6 +106,7 @@ int main(int argc, char *argv[]) {
 
             int tokenIndex = 1;
 
+
             while(ptr != NULL)
             {
 
@@ -107,22 +117,18 @@ int main(int argc, char *argv[]) {
             }
 
 
-
-
-            printf("%s \n", tokens[0]);
-            printf("%s \n", tokens[1]);
-            //printf("%d \n", *tokens[2]);
-
-
+#ifdef debug
+            for(int i = 0; i < tokenIndex; i++){
+                printf("%s \n", tokens[i]);
+            }
+#endif
 
             if (strcmp(tokens[0], "list\n")==0) {
                 status = list();
-
-
             }
 
             if (strcmp(tokens[0], "add")==0) {
-                printf("%s\n", tokens[1]);
+                //printf("%s\n", tokens[1]);
                 if (tokens[1] != NULL){
                     status = add(tokens[1]);
                     if (! status){
@@ -134,7 +140,6 @@ int main(int argc, char *argv[]) {
 
 
                 }
-
 
             }
         } else {
