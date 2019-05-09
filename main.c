@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 #define debug 0
 
@@ -27,11 +28,14 @@ typedef struct limb {
 } limb;
 
 
-    device = tmp;
-#ifdef debug
-    printf("%s \n", "quello di nl");
-    printf("%s \n", device);
-#endif
+
+
+
+
+char * getPipename(int pid) {
+    char * pipeName = malloc(4 * sizeof(char));
+    sprintf(pipeName, "/tmp/ipc/%i", pid);
+    return pipeName;
 }
 
 
@@ -42,35 +46,57 @@ bool list(){
     return status >= 0;
 }
 
-bool add(char device[MAXLEN]){
-#ifdef debug
-    printf("%s \n", device);
-#endif
-    removeNewline(device);
+
+
+
+
+bool add(char device[MAXLEN], int * deviceIndex){
+
+    (*deviceIndex)++;
+
     bool status = true;
 #ifdef debug
     printf("%s \n", device);
 #endif
 
-    if(strcmp(device, "hub") == 0) {
+    if(strcmp(device, "hub\n") == 0) {
 
         // do smth
     }
 
-    else if(strcmp(device, "timer") == 0) {
+    else if(strcmp(device, "timer\n") == 0) {
 
         // do smth
     }
 
-    else if(strcmp(device, "bulb") == 0) {
+    else if(strcmp(device, "bulb\n") == 0) {
+
+        pid_t pid = fork();
+
+        if (pid == 0){ // child
+
+            char * pipeName = getPipename(getpid()); // open parent-child pipe
+            mkfifo(pipeName, 0666);
+
+
+            char *indexStr = malloc(4 * sizeof(char));
+            sprintf(indexStr, "%d", *deviceIndex);
+
+
+
+
+            char * const paramList[] = {"./bin/bulb", NULL};
+            execv("./bin/bulb", paramList);
+        }
+
 
         // do smth
     }
-    else if(strcmp(device, "window") == 0) {
+    else if(strcmp(device, "window\n") == 0) {
 
         // do smth
     }
-    else if(strcmp(device, "fridge") == 0) {
+    else if(strcmp(device, "fridge\n") == 0) {
 
         // do smth
     }
@@ -189,10 +215,33 @@ int main(int argc, char *argv[]) {
                 status = list();
             }
 
-            if (strcmp(tokens[0], "add")==0) {
+            else if (strcmp(tokens[0], "add")==0) {
                 //printf("%s\n", tokens[1]);
                 if (tokens[1] != NULL){
-                    status = add(tokens[1]);
+
+
+
+                    status = add(tokens[1], &deviceIndex);
+                    if (! status){
+                        printf("Device not recognized\n");
+                    }
+                    else {
+                        printf("OK");
+                    }
+
+
+                }
+
+            }
+
+
+            else if (strcmp(tokens[0], "link")==0) {
+
+                if (tokens[1] != NULL && ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)){
+
+                    status = tie(*tokens[1], *tokens[3], limbo);
+
+                    //status = add(tokens[1], &deviceIndex);
                     if (! status){
                         printf("Device not recognized\n");
                     }
