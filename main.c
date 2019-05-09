@@ -14,15 +14,17 @@
 
 const int MAXLEN = 256;
 
-void removeNewline(char device[MAXLEN]){
-    int len = strlen(device);
-    //printf("%d", len);
-    char tmp[len-1];
-    for (int i=0; i<len-1; i++){
-        tmp[i] = device[i];
-    }
+typedef struct limbDev {
+    int id;
+    int fId;    //father ID
+    int type;
+    struct limbDev *next;
+} limbDevice;
 
-    tmp[len-1] = device[len]; // add \0
+typedef struct limb {
+    limbDevice *head;
+    limbDevice *tail;
+} limb;
 
 
     device = tmp;
@@ -31,6 +33,7 @@ void removeNewline(char device[MAXLEN]){
     printf("%s \n", device);
 #endif
 }
+
 
 
 bool list(){
@@ -80,17 +83,76 @@ bool add(char device[MAXLEN]){
     return status;
 }
 
+limbDevice * exists1(int idChild, limbDevice * head, limb * limbo){
+    if (head == NULL){
+        return NULL;
+    }
+    if (head->id == idChild){
+        return head;
+    }
+
+    else{
+        return exists1(idChild, head->next, limbo);
+    }
+}
+
+limbDevice * exists(int idChild, limb * limbo){
+    return exists1(idChild, limbo->head, limbo);
+}
+
+
+
+bool tie(int idChild, int idParent, limb * limbo){
+
+    limbDevice * tmp = exists(idChild, limbo);
+    if (tmp == NULL){
+        printf("Device with ID %d not found or already linked", idChild); // cosa fare se già linkata?
+    }
+
+
+    // controlla che parent sia controller
+    // parte in broadcast una richiesta
+    // il processo sa che tipo è da argv[0]
+
+    return true;
+}
+
+
 
 
 
 int main(int argc, char *argv[]) {
 
+    int deviceIndex = 0;
+    limb * limbo = (limb *) malloc(sizeof(limb));
 
+    //dummy device
+    limbDevice * tmp = (limbDevice *) malloc(sizeof(limbDevice));
+    tmp->id = 1;
+
+    limbo->head = tmp;
+
+
+    limbDevice * tmp1 = (limbDevice *) malloc(sizeof(limbDevice));
+    tmp1->id = 2;
+    tmp->next = NULL;
+
+    tmp->next = tmp1;
+
+    //end dummy device
+
+
+
+    // fake search
+    // printf("%d", exists(4, limbo) != NULL);
+
+    //Input stuff
     char buffer[MAXLEN];
     char * tokens[MAXLEN];
 
     int status = 1; //Contains output of various operations
 
+    //Text input cycle
     while (1) {
 
         printf(" > ");
