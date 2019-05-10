@@ -11,7 +11,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#define debug 0
+#define debug
 
 const int MAXLEN = 256;
 
@@ -19,6 +19,7 @@ typedef struct limbDev {
     int id;
     int fId;    //father ID
     int type;
+    char * registers;
     struct limbDev *next;
 } limbDevice;
 
@@ -28,7 +29,9 @@ typedef struct limb {
 } limb;
 
 
-
+bool isLimbEmpty(limb * limbo){
+    return (limbo->head == NULL);
+}
 
 
 
@@ -36,6 +39,22 @@ char * getPipename(int pid) {
     char * pipeName = malloc(4 * sizeof(char));
     sprintf(pipeName, "/tmp/ipc/%i", pid);
     return pipeName;
+}
+
+void printLimbRec(limb * limbo, limbDevice * head){
+    if (head != NULL){
+        if (head->fId == -1){
+            printf("%d %d\n", head->type, head->id);
+        }
+
+        printLimbRec(limbo, head->next);
+    }
+
+
+}
+
+void printLimb(limb * limbo){
+    printLimbRec(limbo, limbo->head);
 }
 
 
@@ -50,15 +69,19 @@ bool list(){
 
 
 
-bool add(char device[MAXLEN], int * deviceIndex){
+bool add(char device[MAXLEN], int * deviceIndex,  limb * limbo){
 
-    (*deviceIndex)++;
+
 
     bool status = true;
 #ifdef debug
     printf("%s \n", device);
 #endif
 
+
+    // fare ENUM di tipi?
+
+    (*deviceIndex)++;
     if(strcmp(device, "hub\n") == 0) {
 
         // do smth
@@ -69,9 +92,39 @@ bool add(char device[MAXLEN], int * deviceIndex){
         // do smth
     }
 
-    else if(strcmp(device, "bulb\n") == 0) {
+    else if(strcmp(device, "bulb\n") == 0) { // type 2
 
-        pid_t pid = fork();
+        printf("ciao");
+        limbDevice * tmp = (limbDevice *) malloc(sizeof(limbDevice));
+
+        if (tmp != NULL){
+
+
+
+            tmp->id = *deviceIndex;
+            tmp->fId = -1;
+            tmp->type = 2;
+            tmp->next = NULL;
+            tmp->registers = NULL;
+
+            if (isLimbEmpty(limbo)){
+                limbo->head = tmp;
+                limbo->tail = tmp;
+            }
+            else {
+                limbo->tail->next = tmp;
+                limbo->tail = tmp;
+            }
+
+        }
+        else {
+
+            printf("Fatal: failed to add bulb");
+            status = false;
+        }
+
+        /*
+         pid_t pid = fork();
 
         if (pid == 0){ // child
 
@@ -87,11 +140,12 @@ bool add(char device[MAXLEN], int * deviceIndex){
 
             char * const paramList[] = {"./bin/bulb", NULL};
             execv("./bin/bulb", paramList);
+            */
         }
 
 
         // do smth
-    }
+
     else if(strcmp(device, "window\n") == 0) {
 
         // do smth
@@ -151,26 +205,9 @@ int main(int argc, char *argv[]) {
 
     int deviceIndex = 0;
     limb * limbo = (limb *) malloc(sizeof(limb));
+    limbo->head = NULL;
+    limbo->tail = NULL;
 
-    //dummy device
-    limbDevice * tmp = (limbDevice *) malloc(sizeof(limbDevice));
-    tmp->id = 1;
-
-    limbo->head = tmp;
-
-
-    limbDevice * tmp1 = (limbDevice *) malloc(sizeof(limbDevice));
-    tmp1->id = 2;
-    tmp->next = NULL;
-
-    tmp->next = tmp1;
-
-    //end dummy device
-
-
-
-    // fake search
-    // printf("%d", exists(4, limbo) != NULL);
 
     //Input stuff
     char buffer[MAXLEN];
@@ -221,12 +258,12 @@ int main(int argc, char *argv[]) {
 
 
 
-                    status = add(tokens[1], &deviceIndex);
+                    status = add(tokens[1], &deviceIndex, limbo);
                     if (! status){
                         printf("Device not recognized\n");
                     }
                     else {
-                        printf("OK");
+                        printf("Added bulb with ID %d\n", deviceIndex);
                     }
 
 
