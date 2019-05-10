@@ -59,9 +59,12 @@ void printLimb(limb * limbo){
 
 
 
-bool list(){
+
+
+bool list(limb * limbo){
 
     int status = printf("Elenco dispositivi\n");
+    printLimb(limbo);
     return status >= 0;
 }
 
@@ -249,10 +252,11 @@ int main(int argc, char *argv[]) {
 #endif
 
             if (strcmp(tokens[0], "list\n")==0) {
-                status = list();
+                status = list(limbo);
             }
 
             else if (strcmp(tokens[0], "add")==0) {
+                printf("ciao add");
                 //printf("%s\n", tokens[1]);
                 if (tokens[1] != NULL){
 
