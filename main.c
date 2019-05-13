@@ -28,18 +28,50 @@ typedef struct limb {
     limbDevice *tail;
 } limb;
 
+// structure containing children's pid
+pid_t children_pids[MAXLEN]; // you can now calculate pipe names
+int firstFreePosition = 0; // of the children's pid array - useful for inserting the next one without scanning all the array
+
+void init(){
+    // init children structure
+    for (int i=0; i<MAXLEN; i++){
+        children_pids[i] = (pid_t) NULL;
+    }
+}
+
 
 bool isLimbEmpty(limb * limbo){
     return (limbo->head == NULL);
 }
 
 
+void spawn(int id, int type, int deviceIndex) {
+    pid_t pid = fork();
 
-char * getPipename(int pid) {
-    char * pipeName = malloc(4 * sizeof(char));
-    sprintf(pipeName, "/tmp/ipc/%i", pid);
-    return pipeName;
+    if (pid == 0) { // child
+
+        pid_t ppid = getppid();
+        char *pipeName = getPipename(pid); // open parent-child pipe
+        mkfifo(pipeName, O_RDWR);
+
+        char deviceStr[MAXLEN];
+        sprintf(deviceStr, "%d", deviceIndex);
+        char * const paramList[] = {"./bin/bulb", deviceStr, NULL}; // type 2
+        execv(paramList[0], paramList);
+
+
+    }
+    else {
+        children_pids[firstFreePosition] = pid;
+        firstFreePosition = calculateNewFreePosition(children_pids, firstFreePosition);
+        if (firstFreePosition == -1){
+            printf("Ok but no room for other children");
+        }
+    }
 }
+
+
+
 
 void printLimbRec(limb * limbo, limbDevice * head){
     if (head != NULL){
@@ -85,6 +117,7 @@ bool add(char device[MAXLEN], int * deviceIndex,  limb * limbo){
     // fare ENUM di tipi?
 
     (*deviceIndex)++;
+
     if(strcmp(device, "hub\n") == 0) {
 
         // do smth
@@ -126,24 +159,9 @@ bool add(char device[MAXLEN], int * deviceIndex,  limb * limbo){
             status = false;
         }
 
-        /*
-         pid_t pid = fork();
-
-        if (pid == 0){ // child
-
-            char * pipeName = getPipename(getpid()); // open parent-child pipe
-            mkfifo(pipeName, 0666);
-
-
-            char *indexStr = malloc(4 * sizeof(char));
-            sprintf(indexStr, "%d", *deviceIndex);
 
 
 
-
-            char * const paramList[] = {"./bin/bulb", NULL};
-            execv("./bin/bulb", paramList);
-            */
         }
 
 
@@ -205,6 +223,8 @@ bool tie(int idChild, int idParent, limb * limbo){
 
 
 int main(int argc, char *argv[]) {
+
+    init();
 
     int deviceIndex = 0;
     limb * limbo = (limb *) malloc(sizeof(limb));
