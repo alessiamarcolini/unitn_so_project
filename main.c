@@ -11,9 +11,9 @@
 #include <stdbool.h>
 #include <sys/types.h>
 
-#define debug
+#include "utils.h"
 
-const int MAXLEN = 256;
+#define debug
 
 typedef struct limbDev {
     int id;
@@ -214,7 +214,7 @@ int main(int argc, char *argv[]) {
 
     //Input stuff
     char buffer[MAXLEN];
-    char * tokens[MAXLEN];
+
 
     int status = 1; //Contains output of various operations
 
@@ -224,32 +224,11 @@ int main(int argc, char *argv[]) {
         printf(" > ");
 
         if (fgets(buffer, MAXLEN, stdin) != NULL) {
-            int init_size = strlen(buffer);
-            // split
-            char delim[] = " ";
-
-            char *ptr = strtok(buffer, delim);
-            tokens[0] = ptr;
+            char * tokens[MAXLEN];
+            tokenizer(buffer, tokens);
 
 
-            int tokenIndex = 1;
 
-
-            while(ptr != NULL)
-            {
-
-                //printf("'%s'\n", ptr);
-                ptr = strtok(NULL, delim);
-                tokens[tokenIndex] = ptr;
-                tokenIndex++;
-            }
-
-
-#ifdef debug
-            for(int i = 0; i < tokenIndex; i++){
-                printf("%s \n", tokens[i]);
-            }
-#endif
 
             if (strcmp(tokens[0], "list\n")==0) {
                 status = list(limbo);
