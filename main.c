@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
 
         if (fgets(buffer, MAXLEN, stdin) != NULL) {
             char * tokens[MAXLEN];
-            tokenizer(buffer, tokens);
+            tokenizer(buffer, tokens, " ");
 
 
 
