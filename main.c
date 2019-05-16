@@ -184,36 +184,36 @@ bool add(char device[MAXLEN], int * id,  limb * limbo){
     return status;
 }
 
-limbDevice * exists1(int idChild, limbDevice * head, limb * limbo){
-    if (head == NULL){
-        return NULL;
-    }
-    if (head->id == idChild){
-        return head;
-    }
 
-    else{
-        return exists1(idChild, head->next, limbo);
-    }
-}
-
-limbDevice * exists(int idChild, limb * limbo){
-    return exists1(idChild, limbo->head, limbo);
-}
 
 
 
 bool tie(int idChild, int idParent, limb * limbo){
 
+    bool status = true;
+
     limbDevice * tmp = exists(idChild, limbo);
     if (tmp == NULL){
         printf("Device with ID %d not found or already linked", idChild); // cosa fare se già linkata?
+        return false;
     }
 
 
     // controlla che parent sia controller
     // parte in broadcast una richiesta
     // il processo sa che tipo è da argv[0]
+
+
+    else if (idParent == 0){
+        printf("Linking to centralina, device n: %d\n", idChild);
+        int childType = tmp->type;
+        spawn(childType, idChild);
+        if (! removeFromLimb(idChild, limbo)){
+            status = false;
+        }
+        // aggiungere a pid children
+
+    }
 
     return true;
 }
