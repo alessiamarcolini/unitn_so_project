@@ -33,12 +33,15 @@ void tokenizer(char * buffer, char ** tokens){
     }
 }
 
-int calculateNewFreePosition(pid_t * children_pids, int lastPosition){
+int calculateNewFreePosition(pid_t children_pids[MAXLEN], int lastPosition){
     for (int i=lastPosition; i<MAXLEN; i++){
-        if (children_pids[i] != (pid_t) NULL){
+        if (children_pids[i] == (pid_t) NULL){
             return i;
+
         }
     }
     return -1;
 
 }
+
+
