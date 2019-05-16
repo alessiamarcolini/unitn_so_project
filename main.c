@@ -55,7 +55,7 @@ void spawn(int id, int type, int deviceIndex) {
         mkfifo(pipeName, O_RDWR);
 
         char deviceStr[MAXLEN];
-        sprintf(deviceStr, "%d", deviceIndex);
+        sprintf(deviceStr, "%d", id);
         char * const paramList[] = {"./bin/bulb", deviceStr, NULL}; // type 2
         execv(paramList[0], paramList);
 
@@ -104,7 +104,7 @@ bool list(limb * limbo){
 
 
 
-bool add(char device[MAXLEN], int * deviceIndex,  limb * limbo){
+bool add(char device[MAXLEN], int * id,  limb * limbo){
 
 
 
@@ -116,7 +116,7 @@ bool add(char device[MAXLEN], int * deviceIndex,  limb * limbo){
 
     // fare ENUM di tipi?
 
-    (*deviceIndex)++;
+    (*id)++;
 
     if(strcmp(device, "hub\n") == 0) {
 
@@ -137,7 +137,7 @@ bool add(char device[MAXLEN], int * deviceIndex,  limb * limbo){
 
 
 
-            tmp->id = *deviceIndex;
+            tmp->id = *id;
             tmp->fId = -1;
             tmp->type = 2;
             tmp->next = NULL;
@@ -226,7 +226,7 @@ int main(int argc, char *argv[]) {
 
     init();
 
-    int deviceIndex = 0;
+    int id = 0;
     limb * limbo = (limb *) malloc(sizeof(limb));
     limbo->head = NULL;
     limbo->tail = NULL;
@@ -255,18 +255,17 @@ int main(int argc, char *argv[]) {
             }
 
             else if (strcmp(tokens[0], "add")==0) {
-                printf("ciao add");
                 //printf("%s\n", tokens[1]);
                 if (tokens[1] != NULL){
 
 
 
-                    status = add(tokens[1], &deviceIndex, limbo);
+                    status = add(tokens[1], &id, limbo);
                     if (! status){
                         printf("Device not recognized\n");
                     }
                     else {
-                        printf("Added bulb with ID %d\n", deviceIndex);
+                        printf("Added bulb with ID %d\n", id);
                     }
 
 
@@ -279,9 +278,9 @@ int main(int argc, char *argv[]) {
 
                 if (tokens[1] != NULL && ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)){
 
-                    status = tie(*tokens[1], *tokens[3], limbo);
+                    status = tie(atoi(tokens[1]), atoi(tokens[3]), limbo);
 
-                    //status = add(tokens[1], &deviceIndex);
+                    //status = add(tokens[1], &id);
                     if (! status){
                         printf("Device not recognized\n");
                     }
