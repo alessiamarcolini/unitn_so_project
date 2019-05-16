@@ -44,8 +44,71 @@ bool isLimbEmpty(limb * limbo){
     return (limbo->head == NULL);
 }
 
+limbDevice * exists1(int idChild, limbDevice * head, limb * limbo){
+    if (head == NULL){
+        return NULL;
+    }
+    if (head->id == idChild){
+        return head;
+    }
 
-void spawn(int id, int type, int deviceIndex) {
+    else{
+        return exists1(idChild, head->next, limbo);
+    }
+}
+
+limbDevice * exists(int idChild, limb * limbo){
+    return exists1(idChild, limbo->head, limbo);
+}
+
+
+bool removeFromLimb(int id, limb * limbo){
+    bool status = true;
+    limbDevice * tmp = exists(id, limbo);
+
+    if (tmp != NULL){
+        if ((limbo->head == limbo->tail) && (limbo->head == tmp)){
+            limbo->head = NULL;
+            limbo->tail = NULL;
+        }
+        else if (limbo->head == tmp){
+            limbo->head = tmp->next;
+        }
+        else {
+            limbDevice * tmp_head = limbo->head;
+            while(tmp_head->next != tmp){
+                tmp_head = tmp_head->next;
+            }
+            if (limbo->tail == tmp) {
+                limbo->tail = tmp_head;
+                limbo->tail->next = NULL;
+            }
+
+
+            else {
+                tmp_head->next = tmp->next;
+            }
+
+        }
+
+        free(tmp);
+
+    }
+    status = false;
+    return status;
+        }
+
+
+
+
+
+
+
+
+
+
+void spawn(int type, int id) {
+
     pid_t pid = fork();
 
     if (pid == 0) { // child
