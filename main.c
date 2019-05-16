@@ -39,6 +39,13 @@ void init(){
     }
 }
 
+void printChildren(){
+    for (int i=0; i<MAXLEN; i++){
+        if (children_pids[i] != (pid_t) NULL) {
+            printf("%ld\n", (long) children_pids[i]);
+        }
+    }
+}
 
 bool isLimbEmpty(limb * limbo){
     return (limbo->head == NULL);
@@ -270,11 +277,18 @@ bool tie(int idChild, int idParent, limb * limbo){
     else if (idParent == 0){
         printf("Linking to centralina, device n: %d\n", idChild);
         int childType = tmp->type;
+
+        pid_t * pidChild;
         spawn(childType, idChild);
-        if (! removeFromLimb(idChild, limbo)){
+
+        if (! removeFromLimb(idChild, limbo)) {
             status = false;
         }
-        // aggiungere a pid children
+
+
+        printChildren();
+
+
 
     }
 
