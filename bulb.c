@@ -66,6 +66,8 @@ int main(int argc, char * argv[]){
 
     signal(SIGUSR1, handleSignal);
 
+    while(1)
+        sleep(1);
 
     return 0;
 }
