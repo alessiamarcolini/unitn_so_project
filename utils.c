@@ -14,11 +14,11 @@ char * getPipename(int pid) {
     return pipeName;
 }
 
-void tokenizer(char * buffer, char ** tokens, char delim){
+void tokenizer(char * buffer, char ** tokens, char * delimiter){
 
 
     // split
-    char delim[] = delim;
+    char * delim = delimiter;
 
     char *ptr = strtok(buffer, delim);
     tokens[0] = ptr;

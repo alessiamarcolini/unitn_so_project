@@ -19,4 +19,4 @@
 
 char * getPipename(int pid);
 
-void tokenizer(char * buffer, char ** tokens);
+void tokenizer(char * buffer, char ** tokens, char * delimiter);
