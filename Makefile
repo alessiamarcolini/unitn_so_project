@@ -11,6 +11,7 @@ bin: $(objects)
 
 build: 
 	@make dummy_clean
+	@mkdir -p /tmp/pipes
 	@mkdir -p bin
 	@make bin
 	@chmod +x bin/main
