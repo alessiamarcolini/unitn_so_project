@@ -14,6 +14,15 @@
 #define HUB 4
 #define TIMER 5
 
+// bulb stuff
+
+#define STATUS 0
+#define OFF 0
+#define ON 1
+
+#define STATUS_S '0'
+#define OFF_S '0'
+#define ON_S '1'
 
 #define MAXLEN 256
 
