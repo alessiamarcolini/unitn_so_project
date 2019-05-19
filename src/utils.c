@@ -8,7 +8,7 @@
 
 #include "utils.h"
 
-char * getPipename(int pid) {
+char * getPipename(pid_t pid) {
     char * pipeName = malloc(4 * sizeof(char));
     sprintf(pipeName, "/tmp/pipes/%i", pid);
     return pipeName;
@@ -44,4 +44,37 @@ int calculateNewFreePosition(pid_t children_pids[MAXLEN], int lastPosition){
 
 }
 
+/*
+
+pid_t getIdFromPid(pid_t pid) {
+    char *pipeName = getPipename(pid);
+
+    char tmpOut[MAXLEN];
+    sprintf(tmpOut, , " ", (intmax_t) getpid(), " down", (intmax_t) pid, " getId");
+
+    int fdDown = open(pipeName, O_WRONLY);
+    if (fdDown < 0) {
+        return NULL;
+    }
+    write(fdDown, tmpOut, strlen(tmp));
+
+    if (kill(pid, SIGUSR1) < 0) {
+        return NULL;
+    }
+    close(fdDown);
+
+    int fdIn = open(getPipename(getPid()), O_RDONLY);
+
+    if (fdIn < 0) {
+        return NULL;
+    }
+
+    char tmpIn[MAXLEN];
+
+    read(fdIn, tmpIN, MAXLEN);
+
+    char **commands;
+
+    tokenizer(tmpIn, commands, " ");
+    */
 
