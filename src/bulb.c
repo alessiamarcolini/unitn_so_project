@@ -19,6 +19,10 @@
 
 // protocol first try
 
+// [Receiver] [up/down] [Sender] <command;specs>
+
+
+
 /*
 <command>
 0: off
@@ -26,43 +30,75 @@
 */
 
 
-int status = 0; // off at start
+int status;
 time_t startTime;
 
-int fd; // pipe file descriptor
+int fdUp; // pipe file descriptor
+int fdIn;
+
+char * fifoIn;
+char * fifoUp;
+
+int id;
+
+int idReceiver;
+int idSender;
 
 
 void handleSignal(int sig) {
     char tmp[MAXLEN];
 
-    read(fd, tmp, MAXLEN);
-    char **commands;
-    tokenizer(tmp, commands);
+    fdIn = open(fifoIn, O_RDONLY | O_NONBLOCK); // open pipe - non-blocking
+
+    while (read(fdIn, tmp, MAXLEN) != -1) {
+
+        char **message;
+        tokenizer(tmp, message, " ");
+
+        idReceiver = atoi(message[0]);
+
+        if (idReceiver == id) { // messaggio per me
+
+            char ** commands;
+            tokenizer(message[3], commands, ";");
 
 
-    if (atoi(commands[0]) == 0) { // off
-        if (!status) {
-            status = 1;
-            startTime = time(NULL); // get current timestamp
-        } else { // on
-            status = 0;
-            startTime = 0;
+            if (commands[0][0] == STATUS_S){
+                if (commands[1][0] == OFF_S){
+                    status = OFF;
+                    startTime = 0;
+                }
+                if (commands[1][0] == ON_S){
+                    status = ON;
+                    startTime = time(NULL); // get current timestamp
+                }
+
+                else {
+                    printf("Command not allowed.\n");
+                }
+            }
+
+
         }
     }
+
+    close(fdIn);
 }
 
-int main(int argc, char * argv[]){
+    int main(int argc, char * argv[]){
 
-
+    status = OFF;
 
     pid_t pid = getpid();
+    pid_t ppid = getppid();
 
-    int index = atoi(argv[1]);
+    id = atoi(argv[1]);
 
     // FIFO file path
-    char * fifo = getPipename(pid);
+    fifoIn = getPipename(pid); // in-pipe read only
+    fifoUp = getPipename(ppid); // out-pipe with my parent write only
 
-    fd = open(fifo, O_RDWR);
+    fdUp = open(fifoUp, O_WRONLY); // NO è da aprire se devo comunicare
 
     signal(SIGUSR1, handleSignal);
 

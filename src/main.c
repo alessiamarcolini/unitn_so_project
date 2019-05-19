@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #include "utils.h"
 #include "limb.h"
@@ -45,9 +46,8 @@ void spawn(int type, int id) {
 
     if (pid == 0) { // child
 
-        pid_t ppid = getppid();
-        char *pipeName = getPipename(pid); // open parent-child pipe
-        mkfifo(pipeName, O_RDWR);
+        char *pipeName = getPipename(getpid());
+        mkfifo(pipeName, 0777);
 
         char deviceStr[MAXLEN];
         sprintf(deviceStr, "%d", id);
@@ -82,9 +82,6 @@ bool add(char device[MAXLEN], int * id,  limb * limbo){
 
 
     bool status = true;
-#ifdef debug
-    printf("%s \n", device);
-#endif
 
 
     // fare ENUM di tipi?
@@ -103,7 +100,6 @@ bool add(char device[MAXLEN], int * id,  limb * limbo){
 
     else if(strcmp(device, "bulb\n") == 0) { // type 2
 
-        printf("ciao");
         limbDevice * tmp = (limbDevice *) malloc(sizeof(limbDevice));
 
         if (tmp != NULL){
@@ -198,7 +194,45 @@ bool tie(int idChild, int idParent, limb * limbo){
     return true;
 }
 
+bool switchLabel(char * id, char label, char position) {
+    char * message;
 
+    //char * idString;
+    //sprintf(idString, "%d", id);
+    printf("i'm in\n");
+
+    sprintf(message, "%s down 0 %c;%c", id, label, position);
+    printf("done\n");
+    bool status = true; // manage status below ?
+
+    for (int i = 0; i < MAXLEN; i++) {
+        printf("%d", i);
+        if (children_pids[i] != (pid_t) NULL) {
+            printf("%ld", (long) children_pids[i]);
+            char *pipeName = getPipename(children_pids[i]);
+            printf("pipename %s      ", pipeName);
+
+            int fd = open(pipeName, O_WRONLY);
+            printf("fd: %d\n", fd);
+            if (fd < 0){
+                printf( "Error opening file: %s\n", strerror( errno ) );
+            }
+            else {
+                printf("pipe aperta\n");
+
+                kill(children_pids[i], SIGUSR1);
+                write(fd, message, strlen(message)+1);
+
+                printf("ok scritto");
+                close(fd);
+            }
+
+        }
+    }
+    return status;
+
+
+}
 
 
 
@@ -223,11 +257,9 @@ int main(int argc, char *argv[]) {
 
         printf(" > ");
 
-        if (fgets(buffer, MAXLEN, stdin) != NULL) {
+        if (fgets(buffer, MAXLEN, stdin) != NULL) { // not sure if working
             char * tokens[MAXLEN];
             tokenizer(buffer, tokens, " ");
-
-
 
 
             if (strcmp(tokens[0], "list\n")==0) {
@@ -256,7 +288,7 @@ int main(int argc, char *argv[]) {
 
             else if (strcmp(tokens[0], "link")==0) {
 
-                if (tokens[1] != NULL && ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)){
+                if (tokens[1] != NULL && ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)){ // check better if id is valid
 
                     status = tie(atoi(tokens[1]), atoi(tokens[3]), limbo);
 
@@ -272,8 +304,66 @@ int main(int argc, char *argv[]) {
                 }
 
             }
+
+
+            else if (strcmp(tokens[0], "switch")==0) {
+                if (tokens[1] != NULL && atoi(tokens[1]) > 0 && tokens[2] != NULL && tokens[3] != NULL){ // check better if id is valid
+
+                    char * id = tokens[1];
+
+                    char * labelStr = tokens[2];
+                    char label;
+
+                    char * positionStr = tokens[3];
+                    char position;
+
+                    // label check
+
+                    if (strcmp(labelStr, "status") == 0){ // status bulb
+                        label = STATUS_S;
+                        printf("ok label\n");
+                    }
+
+                    else {
+                        printf("Label %s does not exist\n", tokens[2]);
+                        break;
+                    }
+
+
+                    // position check
+
+                    if (strcmp(positionStr, "on\n") == 0){
+                        position = ON_S;
+                        printf("ok position on\n");
+                    }
+
+                    else if (strcmp(positionStr, "off\n") == 0){
+                        position = OFF_S;
+                        printf("ok position off\n");
+                    }
+
+                    else{
+                        printf("Position %s does not exist\n", tokens[3]);
+                        break;
+                    }
+
+
+                    // all right
+                    printf("chiamo switch\n");
+                    status = switchLabel(id, label, position);
+
+                    if (!status){
+                        printf("Switch error");
+                    }
+
+                }
+
+            }
+
+
         } else {
-            printf("Error reading from stdin!\n");
+            return 1;
+            //printf("Error reading from stdin!\n");
         }
 
 
