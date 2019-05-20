@@ -48,41 +48,49 @@ int idSender;
 void handleSignal(int sig) {
     char tmp[MAXLEN];
 
-    fdIn = open(fifoIn, O_RDONLY | O_NONBLOCK); // open pipe - non-blocking
-
-    while (read(fdIn, tmp, MAXLEN) != -1) {
-
-        char **message;
-        tokenizer(tmp, message, " ");
-
-        idReceiver = atoi(message[0]);
-
-        if (idReceiver == id) { // messaggio per me
-
-            char ** commands;
-            tokenizer(message[3], commands, ";");
+    fdIn = open(fifoIn, O_RDONLY); // open pipe - non-blocking
 
 
-            if (commands[0][0] == STATUS_S){
-                if (commands[1][0] == OFF_S){
-                    status = OFF;
-                    startTime = 0;
-                }
-                if (commands[1][0] == ON_S){
-                    status = ON;
-                    startTime = time(NULL); // get current timestamp
-                }
+    while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1);
 
-                else {
-                    printf("Command not allowed.\n");
-                }
+
+
+    char * message[MAXLEN];
+    tokenizer(tmp, message, " ");
+
+
+    idReceiver = atoi(message[0]);
+
+
+    if (idReceiver == id) { // messaggio per me
+
+
+        char * commands[MAXLEN];
+        tokenizer(message[3], commands, ";");
+
+
+        if (commands[0][0] == STATUS_S) {
+            if (commands[1][0] == OFF_S) {
+                status = OFF;
+                startTime = 0;
+            }
+            if (commands[1][0] == ON_S) {
+                status = ON;
+                startTime = time(NULL); // get current timestamp
+            }
+
+        }
+            else {
+                printf("Command not allowed.\n");  // send back switch error
             }
 
 
-        }
+
     }
 
+
     close(fdIn);
+
 }
 
     int main(int argc, char * argv[]){
@@ -95,15 +103,27 @@ void handleSignal(int sig) {
     id = atoi(argv[1]);
 
     // FIFO file path
-    fifoIn = getPipename(pid); // in-pipe read only
-    fifoUp = getPipename(ppid); // out-pipe with my parent write only
+    fifoIn = getPipename((long) pid); // in-pipe read only
+    fifoUp = getPipename((long) ppid); // out-pipe with my parent write only
 
-    fdUp = open(fifoUp, O_WRONLY); // NO è da aprire se devo comunicare
+    //fdUp = open(fifoUp, O_WRONLY); // NO è da aprire se devo comunicare
 
     signal(SIGUSR1, handleSignal);
 
-    while(1)
-        sleep(1);
+    /*
+    struct sigaction psa;
+    psa.sa_handler = handleSignal;
+    sigaction(SIGUSR1, &psa, NULL);
+*/
+
+
+
+
+    sigset_t myset;
+    (void) sigemptyset(&myset);
+    while (1) {
+        (void) sigsuspend(&myset);
+    }
 
     return 0;
 }

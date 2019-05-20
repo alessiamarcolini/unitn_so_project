@@ -53,16 +53,23 @@ void spawn(int type, int id) {
         char deviceStr[MAXLEN];
         sprintf(deviceStr, "%d", id);
         char * const paramList[] = {"./bin/bulb", deviceStr, NULL}; // type 2
-        execv(paramList[0], paramList);
+        int e = execv(paramList[0], paramList);
+        if (e < 0){
+            printf( "Error execv: %s\n", strerror( errno ) );
+        }
 
 
     }
     else {
         children_pids[firstFreePosition] = (long) pid;
         firstFreePosition = calculateNewFreePosition(children_pids, firstFreePosition);
+
         if (firstFreePosition == -1){
             printf("Ok but no room for other children");
+
         }
+
+
     }
 }
 
@@ -178,7 +185,7 @@ bool tie(int idChild, int idParent, limb * limbo){
         printf("Linking to centralina, device n: %d\n", idChild);
         int childType = tmp->type;
 
-        pid_t * pidChild;
+
         spawn(childType, idChild);
 
         if (! removeFromLimb(idChild, limbo)) {
@@ -186,7 +193,7 @@ bool tie(int idChild, int idParent, limb * limbo){
         }
 
 
-        printChildren();
+
 
 
 
@@ -196,44 +203,43 @@ bool tie(int idChild, int idParent, limb * limbo){
 }
 
 bool switchLabel(char * id, char label, char position) {
-    char * message;
-
-    //char * idString;
-    //sprintf(idString, "%d", id);
-    printf("i'm in\n");
+    char message[MAXLEN];
 
     sprintf(message, "%s down 0 %c;%c", id, label, position);
-    printf("done\n");
+
     bool status = true; // manage status below ?
 
+
     for (int i = 0; i < MAXLEN; i++) {
-        printf("%d", i);
-        if (children_pids[i] != (pid_t) NULL) {
-            printf("%ld", (long) children_pids[i]);
-            char *pipeName = getPipename(children_pids[i]);
-            printf("pipename %s      ", pipeName);
 
-            int fd = open(pipeName, O_WRONLY);
-            printf("fd: %d\n", fd);
-            if (fd < 0){
-                printf( "Error opening file: %s\n", strerror( errno ) );
+
+        if (children_pids[i] != -1) {
+            char *pipeName = getPipename(children_pids[0]);
+
+            pid_t tmp = (pid_t) children_pids[i];
+            kill(tmp, SIGUSR1);
+
+            int fd = open(pipeName, O_RDWR);
+
+            while (fd < 0) {
+                fd = open(pipeName, O_RDWR);
+                printf("Error opening file: %s\n", strerror(errno));
             }
-            else {
-                printf("pipe aperta\n");
 
-                kill(children_pids[i], SIGUSR1);
-                write(fd, message, strlen(message)+1);
+            write(fd, message, strlen(message) + 1);
 
-                printf("ok scritto");
-                close(fd);
-            }
+            close(fd);
+
 
         }
+
+
     }
+
     return status;
-
-
 }
+
+
 
 
 
@@ -322,7 +328,7 @@ int main(int argc, char *argv[]) {
 
                     if (strcmp(labelStr, "status") == 0){ // status bulb
                         label = STATUS_S;
-                        printf("ok label\n");
+
                     }
 
                     else {
@@ -335,12 +341,12 @@ int main(int argc, char *argv[]) {
 
                     if (strcmp(positionStr, "on\n") == 0){
                         position = ON_S;
-                        printf("ok position on\n");
+
                     }
 
                     else if (strcmp(positionStr, "off\n") == 0){
                         position = OFF_S;
-                        printf("ok position off\n");
+
                     }
 
                     else{
@@ -350,7 +356,7 @@ int main(int argc, char *argv[]) {
 
 
                     // all right
-                    printf("chiamo switch\n");
+
                     status = switchLabel(id, label, position);
 
                     if (!status){
@@ -363,8 +369,7 @@ int main(int argc, char *argv[]) {
 
 
         } else {
-            return 1;
-            //printf("Error reading from stdin!\n");
+            printf("Error reading from stdin!\n");
         }
 
 
