@@ -19,21 +19,22 @@
 
 
 
+
 // structure containing children's pid
-pid_t children_pids[MAXLEN]; // you can now calculate pipe names
+long children_pids[MAXLEN]; // you can now calculate pipe names
 int firstFreePosition = 0; // of the children's pid array - useful for inserting the next one without scanning all the array
 
 void init(){
     // init children structure
     for (int i=0; i<MAXLEN; i++){
-        children_pids[i] = (pid_t) NULL;
+        children_pids[i] = -1;
     }
 }
 
 void printChildren(){
     for (int i=0; i<MAXLEN; i++){
-        if (children_pids[i] != (pid_t) NULL) {
-            printf("%ld\n", (long) children_pids[i]);
+        if (children_pids[i] != -1) {
+            printf("index: %d, pid: %ld\n",i, children_pids[i]);
         }
     }
 }
@@ -57,7 +58,7 @@ void spawn(int type, int id) {
 
     }
     else {
-        children_pids[firstFreePosition] = pid;
+        children_pids[firstFreePosition] = (long) pid;
         firstFreePosition = calculateNewFreePosition(children_pids, firstFreePosition);
         if (firstFreePosition == -1){
             printf("Ok but no room for other children");
