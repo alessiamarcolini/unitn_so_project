@@ -18,7 +18,7 @@
 #define debug
 
 
-
+limb * limbo;
 
 // structure containing children's pid
 long children_pids[MAXLEN]; // you can now calculate pipe names
@@ -74,18 +74,21 @@ void spawn(int type, int id) {
 }
 
 
-bool list(limb * limbo){
+bool list(){
 
     int status = printf("Elenco dispositivi\n");
     printLimb(limbo);
     return status >= 0;
+
+
+
 }
 
 
 
 
 
-bool add(char device[MAXLEN], int * id,  limb * limbo){
+bool add(char device[MAXLEN], int * id){
 
 
 
@@ -165,7 +168,7 @@ bool add(char device[MAXLEN], int * id,  limb * limbo){
 
 
 
-bool tie(int idChild, int idParent, limb * limbo){
+bool tie(int idChild, int idParent){
 
     bool status = true;
 
@@ -248,7 +251,7 @@ int main(int argc, char *argv[]) {
     init();
 
     int id = 0;
-    limb * limbo = (limb *) malloc(sizeof(limb));
+    limbo = (limb *) malloc(sizeof(limb));
     limbo->head = NULL;
     limbo->tail = NULL;
 
@@ -270,7 +273,7 @@ int main(int argc, char *argv[]) {
 
 
             if (strcmp(tokens[0], "list\n")==0) {
-                status = list(limbo);
+                status = list();
             }
 
             else if (strcmp(tokens[0], "add")==0) {
@@ -279,7 +282,7 @@ int main(int argc, char *argv[]) {
 
 
 
-                    status = add(tokens[1], &id, limbo);
+                    status = add(tokens[1], &id);
                     if (! status){
                         printf("Device not recognized\n");
                     }
@@ -297,7 +300,7 @@ int main(int argc, char *argv[]) {
 
                 if (tokens[1] != NULL && ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)){ // check better if id is valid
 
-                    status = tie(atoi(tokens[1]), atoi(tokens[3]), limbo);
+                    status = tie(atoi(tokens[1]), atoi(tokens[3]));
 
                     //status = add(tokens[1], &id);
                     if (! status){
