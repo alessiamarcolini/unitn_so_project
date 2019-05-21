@@ -26,6 +26,6 @@
 
 #define MAXLEN 256
 
-char * getPipename(pid_t pid);
+char * getPipename(long pid);
 
 void tokenizer(char * buffer, char ** tokens, char * delimiter);

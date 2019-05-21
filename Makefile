@@ -14,7 +14,7 @@ build:
 	@mkdir -p /tmp/pipes
 	@mkdir -p bin
 	@make bin
-	@chmod +x bin/main
+	@chmod +x bin/*
 	@ln -s bin/main run
 	@echo "Build complete"
 
@@ -22,7 +22,7 @@ bin/main: src/main.c bin/utils.o bin/limb.o
 	$(CC) $(CFLAGS) -o bin/main src/main.c bin/utils.o bin/limb.o 
 	
 bin/bulb: src/bulb.c
-	$(CC) $(CFLAGS) -c -o bin/bulb src/bulb.c bin/utils.o
+	$(CC) $(CFLAGS) -o bin/bulb src/bulb.c bin/utils.o
 
 bin/utils.o: src/utils.c
 	$(CC) $(CFLAGS) -c -o bin/utils.o src/utils.c

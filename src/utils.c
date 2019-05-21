@@ -8,9 +8,9 @@
 
 #include "utils.h"
 
-char * getPipename(pid_t pid) {
+char * getPipename(long pid) {
     char * pipeName = malloc(4 * sizeof(char));
-    sprintf(pipeName, "/tmp/pipes/%i", pid);
+    sprintf(pipeName, "/tmp/pipes/%ld", pid);
     return pipeName;
 }
 
