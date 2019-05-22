@@ -1,6 +1,6 @@
 .PHONY: build help clean bin 
 
-CC = clang
+CC = gcc
 CFLAGS = -std=gnu90
 
 objects = bin/main bin/limb.o bin/utils.o bin/bulb
