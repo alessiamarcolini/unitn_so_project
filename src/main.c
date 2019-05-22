@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <time.h>
 
 #include "utils.h"
 #include "limb.h"
@@ -19,6 +20,17 @@
 
 
 limb * limbo;
+
+int id = 0;
+pid_t pid;
+
+int fdIn;
+char * fifoIn;
+
+bool waitingResponse = false;
+
+int idReceiver;
+int idSender;
 
 // structure containing children's pid
 long children_pids[MAXLEN]; // you can now calculate pipe names
@@ -41,13 +53,13 @@ void printChildren(){
 
 
 
-void spawn(int type, int id) {
+pid_t spawn(int type, int id) {
 
     pid_t pid = fork();
 
     if (pid == 0) { // child
 
-        char *pipeName = getPipename(getpid());
+        char * pipeName = getPipename((long) getpid());
         mkfifo(pipeName, 0777);
 
         char deviceStr[MAXLEN];
@@ -71,6 +83,54 @@ void spawn(int type, int id) {
 
 
     }
+    return pid;
+}
+
+bool info(char * id){
+
+    // TODO: check ID
+
+    char message[MAXLEN];
+
+    sprintf(message, "%s down 0 %d", id, INFO);
+
+    bool status = true; // manage status below ?
+
+    int fd;
+    char * pipeName;
+
+    for (int i = 0; i < MAXLEN; i++) {
+
+
+        if (children_pids[i] != -1) {
+            kill((pid_t) children_pids[i], SIGUSR2);
+            sleep(1);
+
+            pipeName = getPipename(children_pids[i]);
+
+            pid_t tmp = (pid_t) children_pids[i];
+
+            kill(tmp, SIGUSR1);
+            fd = open(pipeName, O_RDWR);
+
+
+            while (fd < 0) {
+                fd = open(pipeName, O_RDWR);
+                printf("Error opening file: %s\n", strerror(errno));
+            }
+
+            write(fd, message, strlen(message) + 1);
+
+            close(fd);
+
+
+        }
+
+
+    }
+    waitingResponse = true;
+    return status;
+
 }
 
 
@@ -78,8 +138,12 @@ bool list(){
 
     int status = printf("Elenco dispositivi\n");
     printLimb(limbo);
-    return status >= 0;
 
+
+    TODO:
+    // ask every children info
+
+    return status >= 0;
 
 
 }
@@ -159,6 +223,8 @@ bool add(char device[MAXLEN], int * id){
     else {
         // device not recognized
         status = false;
+        (*id)--;
+
     }
 
     return status;
@@ -185,17 +251,14 @@ bool tie(int idChild, int idParent){
 
 
     else if (idParent == 0){
-        printf("Linking to centralina, device n: %d\n", idChild);
         int childType = tmp->type;
 
 
-        spawn(childType, idChild);
+        pid_t pidChild = spawn(childType, idChild);
 
         if (! removeFromLimb(idChild, limbo)) {
             status = false;
         }
-
-
 
 
 
@@ -217,10 +280,11 @@ bool switchLabel(char * id, char label, char position) {
 
 
         if (children_pids[i] != -1) {
+
+            kill((pid_t) children_pids[i], SIGUSR2);
             char *pipeName = getPipename(children_pids[0]);
 
-            pid_t tmp = (pid_t) children_pids[i];
-            kill(tmp, SIGUSR1);
+            kill((pid_t) children_pids[i], SIGUSR1);
 
             int fd = open(pipeName, O_RDWR);
 
@@ -242,6 +306,82 @@ bool switchLabel(char * id, char label, char position) {
     return status;
 }
 
+void handleSignal(int sig){
+
+
+    signal(SIGUSR1, handleSignal);
+
+    char tmp[MAXLEN];
+
+    for (int i=0; i<MAXLEN; i++){
+        tmp[i] = '\0';
+    }
+    fdIn = open(fifoIn, O_RDONLY | O_NONBLOCK); // open pipe - non-blocking
+
+    read(fdIn, tmp, MAXLEN);
+
+
+
+    char * message[MAXLEN];
+    tokenizer(tmp, message, " ");
+
+
+    idReceiver = atoi(message[0]);
+    idSender = atoi(message[2]);
+
+
+    if (idReceiver == id) { // messaggio per me
+        char * commands[MAXLEN];
+        tokenizer(message[3], commands, ";");
+
+
+        if (commands[0][0] == INFO_BACK_S) { // TODO: check exceptions
+            printf("   Device info: \n");
+            printf("   - Id: %d\n", idSender);
+
+            char * tmpType = commands[1];
+
+
+            switch (atoi(commands[1])){
+
+
+                case BULB:
+                    printf("   - Type: Bulb\n");
+                    printf("   - Status: ");
+
+                    switch (atoi(commands[2])){ // <status>
+                        case ON:
+                            printf("ON\n");
+                            break;
+
+                        case OFF:
+                            printf("OFF\n");
+                            break;
+                    }
+
+                    time_t activeTime = (time_t) atoi(commands[3]);  // <activeTime>
+
+                    char activeTimeStr[MAXLEN];
+
+                    int seconds = activeTime % 60;
+                    int minutes = (activeTime/60) % 60;
+                    int hours = (activeTime/3600) % 24;
+
+
+                    //strftime (activeTimeStr, MAXLEN, "%Y-%m-%d %H:%M:%S.000", (localtime (&activeTime)).);
+                    printf ("   - Active Time: %dh %dm %ds\n", hours, minutes, seconds);
+
+                    break;
+            }
+
+        }
+    }
+    waitingResponse = false;
+    close(fdIn);
+}
+
+
+
 
 
 
@@ -251,9 +391,17 @@ int main(int argc, char *argv[]) {
     init();
 
     int id = 0;
+    int controllerId = 0;
     limbo = (limb *) malloc(sizeof(limb));
     limbo->head = NULL;
     limbo->tail = NULL;
+
+    pid = getpid();
+
+    fifoIn = getPipename(pid);
+    mkfifo(fifoIn, 0777);
+
+    signal(SIGUSR1, handleSignal);
 
 
     //Input stuff
@@ -264,117 +412,114 @@ int main(int argc, char *argv[]) {
 
     //Text input cycle
     while (1) {
+        while (!waitingResponse) {
 
-        printf(" > ");
+            printf(" > ");
 
-        if (fgets(buffer, MAXLEN, stdin) != NULL) { // not sure if working
-            char * tokens[MAXLEN];
-            tokenizer(buffer, tokens, " ");
-
-
-            if (strcmp(tokens[0], "list\n")==0) {
-                status = list();
-            }
-
-            else if (strcmp(tokens[0], "add")==0) {
-                //printf("%s\n", tokens[1]);
-                if (tokens[1] != NULL){
+            if (fgets(buffer, MAXLEN, stdin) != NULL) { // not sure if working
+                char *tokens[MAXLEN];
+                tokenizer(buffer, tokens, " ");
 
 
-
-                    status = add(tokens[1], &id);
-                    if (! status){
-                        printf("Device not recognized\n");
-                    }
-                    else {
-                        printf("Added bulb with ID %d\n", id);
-                    }
+                if (strcmp(tokens[0], "list\n") == 0) {
+                    status = list();
+                } else if (strcmp(tokens[0], "add") == 0) {
+                    //printf("%s\n", tokens[1]);
+                    if (tokens[1] != NULL) {
 
 
-                }
+                        status = add(tokens[1], &id);
+                        if (!status) {
+                            printf("Device not recognized\n");
+                        } else {
+                            printf("Added bulb with ID %d\n", id);
+                        }
 
-            }
-
-
-            else if (strcmp(tokens[0], "link")==0) {
-
-                if (tokens[1] != NULL && ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)){ // check better if id is valid
-
-                    status = tie(atoi(tokens[1]), atoi(tokens[3]));
-
-                    //status = add(tokens[1], &id);
-                    if (! status){
-                        printf("Device not recognized\n");
-                    }
-                    else {
-                        printf("OK");
-                    }
-
-
-                }
-
-            }
-
-
-            else if (strcmp(tokens[0], "switch")==0) {
-                if (tokens[1] != NULL && atoi(tokens[1]) > 0 && tokens[2] != NULL && tokens[3] != NULL){ // check better if id is valid
-
-                    char * id = tokens[1];
-
-                    char * labelStr = tokens[2];
-                    char label;
-
-                    char * positionStr = tokens[3];
-                    char position;
-
-                    // label check
-
-                    if (strcmp(labelStr, "status") == 0){ // status bulb
-                        label = STATUS_S;
 
                     }
 
-                    else {
-                        printf("Label %s does not exist\n", tokens[2]);
-                        break;
+                } else if (strcmp(tokens[0], "link") == 0) {
+
+                    if (tokens[1] != NULL &&
+                        ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)) { // check better if id is valid
+
+                        status = tie(atoi(tokens[1]), atoi(tokens[3]));
+
+                        //status = add(tokens[1], &id);
+                        if (!status) {
+                            printf("Device not recognized\n");
+                        } else {
+                            printf("Linked\n");
+                        }
+
+
                     }
 
+                } else if (strcmp(tokens[0], "switch") == 0) {
+                    if (tokens[1] != NULL && atoi(tokens[1]) > 0 && tokens[2] != NULL &&
+                        tokens[3] != NULL) { // check better if id is valid
 
-                    // position check
+                        char *id = tokens[1];
 
-                    if (strcmp(positionStr, "on\n") == 0){
-                        position = ON_S;
+                        char *labelStr = tokens[2];
+                        char label;
+
+                        char *positionStr = tokens[3];
+                        char position;
+
+                        // label check
+
+                        if (strcmp(labelStr, "status") == 0) { // status bulb
+                            label = STATUS_S;
+
+                        } else {
+                            printf("Label %s does not exist\n", tokens[2]);
+                            break;
+                        }
+
+
+                        // position check
+
+                        if (strcmp(positionStr, "on\n") == 0) {
+                            position = ON_S;
+
+                        } else if (strcmp(positionStr, "off\n") == 0) {
+                            position = OFF_S;
+
+                        } else {
+                            printf("Position %s does not exist\n", tokens[3]);
+                            break;
+                        }
+
+
+                        // all right
+
+                        status = switchLabel(id, label, position);
+
+                        if (!status) {
+                            printf("Switch error\n");
+                        }
 
                     }
 
-                    else if (strcmp(positionStr, "off\n") == 0){
-                        position = OFF_S;
+                } else if (strcmp(tokens[0], "info") == 0) {
+                    if (tokens[1] != NULL) {
+                        status = info(tokens[1]);
 
-                    }
-
-                    else{
-                        printf("Position %s does not exist\n", tokens[3]);
-                        break;
-                    }
-
-
-                    // all right
-
-                    status = switchLabel(id, label, position);
-
-                    if (!status){
-                        printf("Switch error");
+                        if (!status) {
+                            printf("info error\n");
+                        }
                     }
 
                 }
 
+
+            } else {
+                printf("Error reading from stdin!\n");
             }
 
 
-        } else {
-            printf("Error reading from stdin!\n");
         }
-
 
     }
     return 0;
