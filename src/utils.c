@@ -9,7 +9,7 @@
 #include "utils.h"
 
 char * getPipename(long pid) {
-    char * pipeName = malloc(4 * sizeof(char));
+    char * pipeName = malloc(4 * sizeof(pipeName));
     sprintf(pipeName, "/tmp/pipes/%ld", pid);
     return pipeName;
 }
@@ -34,7 +34,8 @@ void tokenizer(char * buffer, char ** tokens, char * delimiter){
 }
 
 int calculateNewFreePosition(pid_t children_pids[MAXLEN], int lastPosition){
-    for (int i=lastPosition; i<MAXLEN; i++){
+    int i;
+    for (i=lastPosition; i<MAXLEN; i++){
         if (children_pids[i] == (pid_t) NULL){
             return i;
 
@@ -44,37 +45,4 @@ int calculateNewFreePosition(pid_t children_pids[MAXLEN], int lastPosition){
 
 }
 
-/*
-
-pid_t getIdFromPid(pid_t pid) {
-    char *pipeName = getPipename(pid);
-
-    char tmpOut[MAXLEN];
-    sprintf(tmpOut, , " ", (intmax_t) getpid(), " down", (intmax_t) pid, " getId");
-
-    int fdDown = open(pipeName, O_WRONLY);
-    if (fdDown < 0) {
-        return NULL;
-    }
-    write(fdDown, tmpOut, strlen(tmp));
-
-    if (kill(pid, SIGUSR1) < 0) {
-        return NULL;
-    }
-    close(fdDown);
-
-    int fdIn = open(getPipename(getPid()), O_RDONLY);
-
-    if (fdIn < 0) {
-        return NULL;
-    }
-
-    char tmpIn[MAXLEN];
-
-    read(fdIn, tmpIN, MAXLEN);
-
-    char **commands;
-
-    tokenizer(tmpIn, commands, " ");
-    */
 
