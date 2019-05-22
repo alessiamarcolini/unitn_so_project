@@ -26,6 +26,8 @@
 int status;
 time_t startTime = (time_t) -1;
 
+int sigIn = -1;
+
 int id;
 int deviceType = BULB;
 
@@ -41,11 +43,16 @@ char * fifoUp;
 int idReceiver;
 int idSender;
 
-void handleSignalKnock(int sig);
 
 void handleSignal(int sig) {
 
-    signal(SIGUSR1, handleSignal);
+    if (sig == SIGUSR2){
+        sigIn = sig;
+        return;
+    }
+
+
+    sigIn = sig;
 
 
     char tmp[MAXLEN];
@@ -58,6 +65,7 @@ void handleSignal(int sig) {
     }
 
     while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1);
+
     close(fdIn);
 
 
@@ -159,10 +167,10 @@ void handleSignal(int sig) {
 
 
 
-    struct sigaction psa;
-    psa.sa_handler = handleSignal;
-    sigaction(SIGUSR1, &psa, NULL);
-    sigaction(SIGUSR2, &psa, NULL);
+    struct sigaction psa1;
+    psa1.sa_handler = handleSignal;
+    sigaction(SIGUSR1, &psa1, NULL);
+    sigaction(SIGUSR2, &psa1, NULL);
 
 
 
@@ -170,8 +178,15 @@ void handleSignal(int sig) {
 
     sigset_t myset;
     (void) sigemptyset(&myset);
+
+
+    kill(ppid, SIGUSR2); // I'm alive
+
+
     while (1) {
+        //printf("Letto signal: %d\n", sigIn);
         (void) sigsuspend(&myset);
+
     }
 
     return 0;

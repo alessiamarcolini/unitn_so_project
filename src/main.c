@@ -20,7 +20,6 @@
 
 #define debug
 
-
 limb * limbo;
 
 int id = 0;
@@ -110,16 +109,21 @@ bool info(char * id){
 
 
         if (children_pids[i] != -1) {
+
+
             kill((pid_t) children_pids[i], SIGUSR2);
+
             sleep(1);
 
             pipeName = getPipename(children_pids[i]);
 
             pid_t tmp = (pid_t) children_pids[i];
 
-            kill(tmp, SIGUSR1);
+            int signalResult = kill(tmp, SIGUSR1);
+            if (signalResult != 0) {
+                printf("Signal error\n");
+            };
             fd = open(pipeName, O_RDWR);
-
 
             while (fd < 0) {
                 fd = open(pipeName, O_RDWR);
@@ -242,6 +246,7 @@ bool add(char device[MAXLEN], int * id){
 
 
 bool tie(int idChild, int idParent){
+    waitingResponse = true;
 
     bool status = true;
 
@@ -309,14 +314,19 @@ bool switchLabel(char * id, char label, char position) {
 
 
     }
-
+    sleep(2);
     return status;
 }
 
 void handleSignal(int sig){
 
+    if (sig == SIGUSR2){
+        waitingResponse = false;
+        return;
+    }
 
-    signal(SIGUSR1, handleSignal);
+
+    //signal(SIGUSR1, handleSignal);
 
     char tmp[MAXLEN];
     int i;
@@ -408,7 +418,12 @@ int main(int argc, char *argv[]) {
     fifoIn = getPipename(pid);
     mkfifo(fifoIn, 0777);
 
-    signal(SIGUSR1, handleSignal);
+    //signal(SIGUSR1, handleSignal);
+    struct sigaction psa1;
+    psa1.sa_handler = handleSignal;
+    sigaction(SIGUSR1, &psa1, NULL);
+    sigaction(SIGUSR2, &psa1, NULL);
+
 
 
     //Input stuff
@@ -419,6 +434,7 @@ int main(int argc, char *argv[]) {
 
     //Text input cycle
     while (1) {
+        //printf(" waiting %d\n", waitingResponse);
         while (!waitingResponse) {
 
             printf(" > ");
