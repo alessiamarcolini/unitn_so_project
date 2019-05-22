@@ -38,13 +38,15 @@ int firstFreePosition = 0; // of the children's pid array - useful for inserting
 
 void init(){
     // init children structure
-    for (int i=0; i<MAXLEN; i++){
+    int i;
+    for (i=0; i<MAXLEN; i++){
         children_pids[i] = -1;
     }
 }
 
 void printChildren(){
-    for (int i=0; i<MAXLEN; i++){
+    int i;
+    for (i=0; i<MAXLEN; i++){
         if (children_pids[i] != -1) {
             printf("index: %d, pid: %ld\n",i, children_pids[i]);
         }
@@ -99,7 +101,8 @@ bool info(char * id){
     int fd;
     char * pipeName;
 
-    for (int i = 0; i < MAXLEN; i++) {
+    int i;
+    for (i = 0; i < MAXLEN; i++) {
 
 
         if (children_pids[i] != -1) {
@@ -275,8 +278,8 @@ bool switchLabel(char * id, char label, char position) {
 
     bool status = true; // manage status below ?
 
-
-    for (int i = 0; i < MAXLEN; i++) {
+    int i;
+    for (i = 0; i < MAXLEN; i++) {
 
 
         if (children_pids[i] != -1) {
@@ -312,8 +315,8 @@ void handleSignal(int sig){
     signal(SIGUSR1, handleSignal);
 
     char tmp[MAXLEN];
-
-    for (int i=0; i<MAXLEN; i++){
+    int i;
+    for (i=0; i<MAXLEN; i++){
         tmp[i] = '\0';
     }
     fdIn = open(fifoIn, O_RDONLY | O_NONBLOCK); // open pipe - non-blocking
