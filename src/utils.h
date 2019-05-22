@@ -40,5 +40,5 @@
 #define MAXLEN 256
 
 char * getPipename(long pid);
-
+int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition);
 void tokenizer(char * buffer, char ** tokens, char * delimiter);

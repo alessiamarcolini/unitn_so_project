@@ -20,10 +20,13 @@ void tokenizer(char * buffer, char ** tokens, char * delimiter){
     // split
     char * delim = delimiter;
 
-    char *ptr = strtok(buffer, delim);
+    char *ptr;
+    int tokenIndex;
+    ptr = strtok(buffer, delim);
     tokens[0] = ptr;
 
-    int tokenIndex = 1;
+
+    tokenIndex = 1;
 
     while(ptr != NULL){
         //printf("'%s'\n", ptr);
@@ -33,10 +36,10 @@ void tokenizer(char * buffer, char ** tokens, char * delimiter){
     }
 }
 
-int calculateNewFreePosition(pid_t children_pids[MAXLEN], int lastPosition){
+int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition){
     int i;
     for (i=lastPosition; i<MAXLEN; i++){
-        if (children_pids[i] == (pid_t) NULL){
+        if (children_pids[i] == -1){
             return i;
 
         }

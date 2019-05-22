@@ -10,8 +10,10 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <time.h>
+#include <signal.h>
 
 #include "utils.h"
 #include "limb.h"
@@ -66,6 +68,8 @@ pid_t spawn(int type, int id) {
 
         char deviceStr[MAXLEN];
         sprintf(deviceStr, "%d", id);
+
+        // switch type
         char * const paramList[] = {"./bin/bulb", deviceStr, NULL}; // type 2
         int e = execv(paramList[0], paramList);
         if (e < 0){
@@ -342,7 +346,7 @@ void handleSignal(int sig){
             printf("   Device info: \n");
             printf("   - Id: %d\n", idSender);
 
-            char * tmpType = commands[1];
+
 
 
             switch (atoi(commands[1])){
@@ -364,7 +368,7 @@ void handleSignal(int sig){
 
                     time_t activeTime = (time_t) atoi(commands[3]);  // <activeTime>
 
-                    char activeTimeStr[MAXLEN];
+
 
                     int seconds = activeTime % 60;
                     int minutes = (activeTime/60) % 60;
@@ -394,7 +398,7 @@ int main(int argc, char *argv[]) {
     init();
 
     int id = 0;
-    int controllerId = 0;
+
     limbo = (limb *) malloc(sizeof(limb));
     limbo->head = NULL;
     limbo->tail = NULL;

@@ -106,7 +106,7 @@ void handleSignal(int sig) {
             }
 
 
-            int err = sprintf(msg, "%d up %d %d;%d;%d;%d", idSender, id, INFO_BACK, deviceType, status, activeTime);
+            sprintf(msg, "%d up %d %d;%d;%d;%d", idSender, id, INFO_BACK, deviceType, status, activeTime);
 
 
 
