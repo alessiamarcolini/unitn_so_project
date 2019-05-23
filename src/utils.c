@@ -48,4 +48,21 @@ int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition){
 
 }
 
+void initChildren(long * childrenPids){
+    // init children structure
+    int i;
+    for (i=0; i<MAXLEN; i++){
+        childrenPids[i] = -1;
+    }
+}
+
+void printChildren(long * childrenPids){
+    int i;
+    for (i=0; i<MAXLEN; i++){
+        if (childrenPids[i] != -1) {
+            printf("index: %d, pid: %ld\n",i, childrenPids[i]);
+        }
+    }
+}
+
 

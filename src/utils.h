@@ -42,3 +42,5 @@
 char * getPipename(long pid);
 int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition);
 void tokenizer(char * buffer, char ** tokens, char * delimiter);
+void initChildren(long * childrenPids);
+void printChildren(long * childrenPids);
