@@ -45,30 +45,38 @@ int idSender;
 
 
 void handleSignal(int sig) {
-
     if (sig == SIGUSR2){
         sigIn = sig;
         return;
     }
+    /*char alert[MAXLEN];
+    int c = sprintf(alert, "SONO BULB %d PID %d SIG %d\n", id, (int) pid, (int) sig);
+    write(1, alert, c);*/
 
+    //char buff[MAXLEN+30];
+    //int c2 = sprintf(buff, "--%d-- Signal Arrived --%d!--\n", id, id);
+    //write(1, buff, c2);
 
     sigIn = sig;
 
 
     char tmp[MAXLEN];
 
-    fdIn = open(fifoIn, O_RDONLY); // open pipe -
-
+    fdIn = open(fifoIn, O_RDWR); // open pipe -
+    //printf("%d FIFO OPENED DOWNWARD\n", fdIn);
     while (fdIn < 0){
-        fdIn = open(fifoIn, O_RDONLY);
         printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
+        fdIn = open(fifoIn, O_RDONLY);
     }
-
     while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1);
 
+    //char buf[MAXLEN+30];
+    //int c = sprintf(buf, "---- %d: letto: %s!\n", id, tmp);
+    //write(1, buf, c);
+    //printf("---- %d: letto: %s!\n", id, tmp);
+
+
     close(fdIn);
-
-
     char * message[MAXLEN];
     tokenizer(tmp, message, " ");
 
@@ -78,8 +86,6 @@ void handleSignal(int sig) {
 
 
     if (idReceiver == id) { // messaggio per me
-
-
         char * commands[MAXLEN];
         tokenizer(message[3], commands, ";");
 
@@ -141,10 +147,7 @@ void handleSignal(int sig) {
 
 
     }
-
-
-
-
+    return;
 }
 
     int main(int argc, char * argv[]){
@@ -172,18 +175,21 @@ void handleSignal(int sig) {
     sigaction(SIGUSR1, &psa1, NULL);
     sigaction(SIGUSR2, &psa1, NULL);
 
-
-
+    struct sigaction psa2;
+    psa2.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &psa2, NULL);
 
 
     sigset_t myset;
     (void) sigemptyset(&myset);
 
+    //setting "handler" for broken pipes
+
 
     kill(ppid, SIGUSR2); // I'm alive
 
-
     while (1) {
+        //printf("Attendo -- %d\n", id);
         //printf("Letto signal: %d\n", sigIn);
         (void) sigsuspend(&myset);
 

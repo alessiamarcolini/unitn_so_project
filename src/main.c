@@ -95,6 +95,8 @@ bool info(char * id){
 
     // TODO: check ID
 
+    waitingResponse = true;
+
     char message[MAXLEN];
 
     sprintf(message, "%s down 0 %d", id, INFO);
@@ -111,9 +113,9 @@ bool info(char * id){
         if (children_pids[i] != -1) {
 
 
-            kill((pid_t) children_pids[i], SIGUSR2);
+            //kill((pid_t) children_pids[i], SIGUSR2);
 
-            sleep(1);
+            //sleep(1);
 
             pipeName = getPipename(children_pids[i]);
 
@@ -130,7 +132,10 @@ bool info(char * id){
                 printf("Error opening file: %s\n", strerror(errno));
             }
 
-            write(fd, message, strlen(message) + 1);
+            int writeRes = write(fd, message, strlen(message) + 1);
+            //printf("Wrote %d characters to pipe %d\n", writeRes, (int) children_pids[i]);
+
+            sleep(1);
 
             close(fd);
 
@@ -139,7 +144,7 @@ bool info(char * id){
 
 
     }
-    waitingResponse = true;
+
     return status;
 
 }
@@ -294,7 +299,7 @@ bool switchLabel(char * id, char label, char position) {
         if (children_pids[i] != -1) {
 
             kill((pid_t) children_pids[i], SIGUSR2);
-            char *pipeName = getPipename(children_pids[0]);
+            char *pipeName = getPipename(children_pids[i]);
 
             kill((pid_t) children_pids[i], SIGUSR1);
 
@@ -521,6 +526,9 @@ int main(int argc, char *argv[]) {
 
                         if (!status) {
                             printf("Switch error\n");
+                        }
+                        else{
+                            printf("Switched\n");
                         }
 
                     }
