@@ -400,7 +400,7 @@ void handleSignal(int sig){
 
 int main(int argc, char *argv[]) {
 
-    init(&childrenPids);
+    initChildren(childrenPids);
 
     int id = 0;
 
