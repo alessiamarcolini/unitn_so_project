@@ -34,25 +34,12 @@ int idReceiver;
 int idSender;
 
 // structure containing children's pid
-long children_pids[MAXLEN]; // you can now calculate pipe names
+long childrenPids[MAXLEN]; // you can now calculate pipe names
 int firstFreePosition = 0; // of the children's pid array - useful for inserting the next one without scanning all the array
 
-void init(){
-    // init children structure
-    int i;
-    for (i=0; i<MAXLEN; i++){
-        children_pids[i] = -1;
-    }
-}
 
-void printChildren(){
-    int i;
-    for (i=0; i<MAXLEN; i++){
-        if (children_pids[i] != -1) {
-            printf("index: %d, pid: %ld\n",i, children_pids[i]);
-        }
-    }
-}
+
+
 
 
 
@@ -78,8 +65,8 @@ pid_t spawn(int type, int id) {
 
     }
     else {
-        children_pids[firstFreePosition] = (long) pid;
-        firstFreePosition = calculateNewFreePosition(children_pids, firstFreePosition);
+        childrenPids[firstFreePosition] = (long) pid;
+        firstFreePosition = calculateNewFreePosition(childrenPids, firstFreePosition);
 
         if (firstFreePosition == -1){
             printf("Ok but no room for other children");
@@ -108,16 +95,16 @@ bool info(char * id){
     for (i = 0; i < MAXLEN; i++) {
 
 
-        if (children_pids[i] != -1) {
+        if (childrenPids[i] != -1) {
+//            printf("%d\n", i);
 
-
-            kill((pid_t) children_pids[i], SIGUSR2);
+            kill((pid_t) childrenPids[i], SIGUSR2);
 
             sleep(1);
 
-            pipeName = getPipename(children_pids[i]);
+            pipeName = getPipename(childrenPids[i]);
 
-            pid_t tmp = (pid_t) children_pids[i];
+            pid_t tmp = (pid_t) childrenPids[i];
 
             int signalResult = kill(tmp, SIGUSR1);
             if (signalResult != 0) {
@@ -291,12 +278,12 @@ bool switchLabel(char * id, char label, char position) {
     for (i = 0; i < MAXLEN; i++) {
 
 
-        if (children_pids[i] != -1) {
+        if (childrenPids[i] != -1) {
 
-            kill((pid_t) children_pids[i], SIGUSR2);
-            char *pipeName = getPipename(children_pids[0]);
+            kill((pid_t) childrenPids[i], SIGUSR2);
+            char *pipeName = getPipename(childrenPids[0]);
 
-            kill((pid_t) children_pids[i], SIGUSR1);
+            kill((pid_t) childrenPids[i], SIGUSR1);
 
             int fd = open(pipeName, O_RDWR);
 
@@ -405,7 +392,7 @@ void handleSignal(int sig){
 
 int main(int argc, char *argv[]) {
 
-    init();
+    init(&childrenPids);
 
     int id = 0;
 
