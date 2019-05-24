@@ -70,7 +70,32 @@ bool add(char device[MAXLEN], int * id){
 
     if(strcmp(device, "hub\n") == 0) {
 
-        // do smth
+        limbDevice * tmp = (limbDevice *) malloc(sizeof(limbDevice));
+
+        if (tmp != NULL){
+
+            tmp->id = *id;
+            tmp->fId = -1;
+            tmp->type = HUB;
+            tmp->next = NULL;
+            tmp->registers = NULL;
+
+            if (isLimbEmpty(limbo)){
+                limbo->head = tmp;
+                limbo->tail = tmp;
+            }
+            else {
+                limbo->tail->next = tmp;
+                limbo->tail = tmp;
+            }
+
+        }
+        else {
+
+            printf("Fatal: failed to add bulb");
+            status = false;
+        }
+
     }
 
     else if(strcmp(device, "timer\n") == 0) {
@@ -177,12 +202,11 @@ bool tie(char * idChild, char * idParent, bool * waitingResponse){
 
     else { // forward
 
-        if (childrenPids[i] != -1) {
+        childType = tmp->type;
+        char message[MAXLEN];
 
-            kill((pid_t) childrenPids[i], SIGUSR2);
-            char *pipeName = getPipename(childrenPids[0]);
+        sprintf(message, "%d down 0 %d;%s;%d", atoi(idParent), SPAWN, idChild, childType);
 
-            kill((pid_t) childrenPids[i], SIGUSR1);
 
         status = writeAllChildren(message, childrenPids);
 
