@@ -40,8 +40,6 @@ int firstFreePosition = 0; // of the children's pid array - useful for inserting
 int numChildren = 0;
 
 
-
-
 bool list(){
 
     int status = printf("Elenco dispositivi\n");
@@ -204,9 +202,7 @@ bool tie(char * idChild, char * idParent, bool * waitingResponse){
 
         childType = tmp->type;
         char message[MAXLEN];
-
         sprintf(message, "%d down 0 %d;%s;%d", atoi(idParent), SPAWN, idChild, childType);
-
 
         status = writeAllChildren(message, childrenPids);
 
@@ -424,6 +420,9 @@ int main(int argc, char *argv[]) {
 
                         if (!status) {
                             printf("Switch error\n");
+                        }
+                        else{
+                            printf("Switched\n");
                         }
 
                     }

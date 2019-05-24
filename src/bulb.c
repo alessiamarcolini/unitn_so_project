@@ -45,12 +45,17 @@ int idSender;
 
 
 void handleSignal(int sig) {
+
     printf("ok sig bulb received %d\n", sig);
 
     sigIn = sig;
+
     if (sig == SIGUSR2){
         return;
     }
+    /*char alert[MAXLEN];
+    int c = sprintf(alert, "SONO BULB %d PID %d SIG %d\n", id, (int) pid, (int) sig);
+    write(1, alert, c);*/
 
     int c;
     char buf[MAXLEN];
@@ -61,8 +66,10 @@ void handleSignal(int sig) {
     char tmp[MAXLEN];
 
     fdIn = open(fifoIn, O_RDWR); // open pipe -
+
     c = sprintf(buf, "---- %d: fdin open: %d!\n", id, fdIn);
     write(1, buf, c);
+
 
     while (fdIn < 0){
         printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
@@ -80,9 +87,13 @@ void handleSignal(int sig) {
     //printf("---- %d: letto: %s!\n", id, tmp);
 
 
+    //char buf[MAXLEN+30];
+    //int c = sprintf(buf, "---- %d: letto: %s!\n", id, tmp);
+    //write(1, buf, c);
+    //printf("---- %d: letto: %s!\n", id, tmp);
+
+
     close(fdIn);
-
-
     char * message[MAXLEN];
     tokenizer(tmp, message, " ");
 
@@ -155,10 +166,7 @@ void handleSignal(int sig) {
 
 
     }
-
-
-
-
+    return;
 }
 
     int main(int argc, char * argv[]){
@@ -191,16 +199,13 @@ void handleSignal(int sig) {
     sigaction(SIGPIPE, &psa2, NULL);
 
 
-
-
-
-
     sigset_t myset;
     (void) sigemptyset(&myset);
 
+    //setting "handler" for broken pipes
+
 
     kill(ppid, SIGUSR2); // I'm alive
-
 
     while (1) {
 
