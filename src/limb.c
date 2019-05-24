@@ -65,7 +65,10 @@ bool removeFromLimb(int id, limb * limbo){
         free(tmp);
 
     }
-    status = false;
+    else {
+        status = false;
+    }
+
     return status;
 }
 
