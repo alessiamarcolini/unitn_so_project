@@ -17,6 +17,7 @@
 
 #include "utils.h"
 #include "limb.h"
+#include "controllerActions.h"
 
 #define debug
 
@@ -36,100 +37,9 @@ int idSender;
 // structure containing children's pid
 long childrenPids[MAXLEN]; // you can now calculate pipe names
 int firstFreePosition = 0; // of the children's pid array - useful for inserting the next one without scanning all the array
+int numChildren = 0;
 
 
-
-
-
-
-
-pid_t spawn(int type, int id) {
-
-    pid_t pid = fork();
-
-    if (pid == 0) { // child
-
-        char * pipeName = getPipename((long) getpid());
-        mkfifo(pipeName, 0777);
-
-        char deviceStr[MAXLEN];
-        sprintf(deviceStr, "%d", id);
-
-        // switch type
-        char * const paramList[] = {"./bin/bulb", deviceStr, NULL}; // type 2
-        int e = execv(paramList[0], paramList);
-        if (e < 0){
-            printf( "Error execv: %s\n", strerror( errno ) );
-        }
-
-
-    }
-    else {
-        childrenPids[firstFreePosition] = (long) pid;
-        firstFreePosition = calculateNewFreePosition(childrenPids, firstFreePosition);
-
-        if (firstFreePosition == -1){
-            printf("Ok but no room for other children");
-
-        }
-
-
-    }
-    return pid;
-}
-
-bool info(char * id){
-
-    // TODO: check ID
-
-    char message[MAXLEN];
-
-    sprintf(message, "%s down 0 %d", id, INFO);
-
-    bool status = true; // manage status below ?
-
-    int fd;
-    char * pipeName;
-
-    int i;
-    for (i = 0; i < MAXLEN; i++) {
-
-
-        if (childrenPids[i] != -1) {
-//            printf("%d\n", i);
-
-            kill((pid_t) childrenPids[i], SIGUSR2);
-
-            sleep(1);
-
-            pipeName = getPipename(childrenPids[i]);
-
-            pid_t tmp = (pid_t) childrenPids[i];
-
-            int signalResult = kill(tmp, SIGUSR1);
-            if (signalResult != 0) {
-                printf("Signal error\n");
-            };
-            fd = open(pipeName, O_RDWR);
-
-            while (fd < 0) {
-                fd = open(pipeName, O_RDWR);
-                printf("Error opening file: %s\n", strerror(errno));
-            }
-
-            write(fd, message, strlen(message) + 1);
-
-            close(fd);
-
-
-        }
-
-
-    }
-    waitingResponse = true;
-    return status;
-
-}
 
 
 bool list(){
@@ -151,9 +61,6 @@ bool list(){
 
 
 bool add(char device[MAXLEN], int * id){
-
-
-
     bool status = true;
 
 
@@ -181,7 +88,7 @@ bool add(char device[MAXLEN], int * id){
 
             tmp->id = *id;
             tmp->fId = -1;
-            tmp->type = 2;
+            tmp->type = BULB;
             tmp->next = NULL;
             tmp->registers = NULL;
 
@@ -232,15 +139,17 @@ bool add(char device[MAXLEN], int * id){
 
 
 
-bool tie(int idChild, int idParent){
-    waitingResponse = true;
+bool tie(char * idChild, char * idParent, bool * waitingResponse){
+    *waitingResponse = true;
 
     bool status = true;
 
-    limbDevice * tmp = exists(idChild, limbo);
+    limbDevice * tmp = exists(atoi(idChild), limbo);
+    int childType;
+
     if (tmp == NULL){
-        printf("Device with ID %d not found or already linked", idChild); // cosa fare se già linkata?
-        return false;
+        printf("Device with ID %s not found or already linked", idChild); // cosa fare se già linkata?
+        status = false;
     }
 
 
@@ -249,34 +158,24 @@ bool tie(int idChild, int idParent){
     // il processo sa che tipo è da argv[0]
 
 
-    else if (idParent == 0){
-        int childType = tmp->type;
 
+    else if (atoi(idParent) == 0){
+        printf("link to 0\n");
 
-        pid_t pidChild = spawn(childType, idChild);
-
-        if (! removeFromLimb(idChild, limbo)) {
+        childType = tmp->type;
+        pid_t pidChild = spawn(childType, idChild, childrenPids, &firstFreePosition);
+        if (pidChild == -1){
             status = false;
+            printf("Spawn error\n");
         }
-
-
-
+        else {
+            numChildren++;
+            status = true;
+        }
 
     }
 
-    return true;
-}
-
-bool switchLabel(char * id, char label, char position) {
-    char message[MAXLEN];
-
-    sprintf(message, "%s down 0 %c;%c", id, label, position);
-
-    bool status = true; // manage status below ?
-
-    int i;
-    for (i = 0; i < MAXLEN; i++) {
-
+    else { // forward
 
         if (childrenPids[i] != -1) {
 
@@ -285,30 +184,24 @@ bool switchLabel(char * id, char label, char position) {
 
             kill((pid_t) childrenPids[i], SIGUSR1);
 
-            int fd = open(pipeName, O_RDWR);
-
-            while (fd < 0) {
-                fd = open(pipeName, O_RDWR);
-                printf("Error opening file: %s\n", strerror(errno));
-            }
-
-            write(fd, message, strlen(message) + 1);
-
-            close(fd);
-
-
-        }
+        status = writeAllChildren(message, childrenPids);
 
 
     }
-    sleep(2);
+    if (! removeFromLimb(atoi(idChild), limbo)) {
+        status = false;
+        printf("error remove from limb\n");
+    }
+
     return status;
 }
+
 
 void handleSignal(int sig){
 
     if (sig == SIGUSR2){
         waitingResponse = false;
+        printf("ok sigusr2 main received\n");
         return;
     }
 
@@ -392,7 +285,7 @@ void handleSignal(int sig){
 
 int main(int argc, char *argv[]) {
 
-    init(&childrenPids);
+    initChildren(childrenPids);
 
     int id = 0;
 
@@ -442,7 +335,7 @@ int main(int argc, char *argv[]) {
                         if (!status) {
                             printf("Device not recognized\n");
                         } else {
-                            printf("Added bulb with ID %d\n", id);
+                            printf("Added new device with id %d of type %s", id, tokens[1]);
                         }
 
 
@@ -453,9 +346,8 @@ int main(int argc, char *argv[]) {
                     if (tokens[1] != NULL &&
                         ((strcmp(tokens[2], "to") == 0) && tokens[3] != NULL)) { // check better if id is valid
 
-                        status = tie(atoi(tokens[1]), atoi(tokens[3]));
+                        status = tie(tokens[1], tokens[3], &waitingResponse);
 
-                        //status = add(tokens[1], &id);
                         if (!status) {
                             printf("Device not recognized\n");
                         } else {
@@ -504,7 +396,7 @@ int main(int argc, char *argv[]) {
 
                         // all right
 
-                        status = switchLabel(id, label, position);
+                        status = switchLabel(id, label, position, childrenPids);
 
                         if (!status) {
                             printf("Switch error\n");
@@ -514,7 +406,7 @@ int main(int argc, char *argv[]) {
 
                 } else if (strcmp(tokens[0], "info") == 0) {
                     if (tokens[1] != NULL) {
-                        status = info(tokens[1]);
+                        status = info(tokens[1], childrenPids, &waitingResponse);
 
                         if (!status) {
                             printf("info error\n");
