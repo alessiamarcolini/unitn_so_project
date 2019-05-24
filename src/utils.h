@@ -7,6 +7,10 @@
 
 #endif
 
+
+#define BROADCAST_ID -2
+#define BROADCAST_ID_S "-2"
+
 // device type
 #define CONTROLLER 0
 #define BULB 1
@@ -34,6 +38,17 @@
 #define ON 1
 #define ON_S '1'
 
+#define BIN_BULB "bin/bulb"
+
+
+// controller stuff
+
+#define BIN_HUB "bin/hub"
+
+// label
+#define SPAWN 3
+#define SPAWN_S '3'
+
 
 
 
@@ -42,5 +57,5 @@
 char * getPipename(long pid);
 int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition);
 void tokenizer(char * buffer, char ** tokens, char * delimiter);
-void initChildren(long * childrenPids);
-void printChildren(long * childrenPids);
+void initChildren(long childrenPids[MAXLEN]);
+void printChildren(long childrenPids[MAXLEN]);

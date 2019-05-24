@@ -48,7 +48,7 @@ int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition){
 
 }
 
-void initChildren(long * childrenPids){
+void initChildren(long childrenPids[MAXLEN]){
     // init children structure
     int i;
     for (i=0; i<MAXLEN; i++){
@@ -56,7 +56,7 @@ void initChildren(long * childrenPids){
     }
 }
 
-void printChildren(long * childrenPids){
+void printChildren(long childrenPids[MAXLEN]){
     int i;
     for (i=0; i<MAXLEN; i++){
         if (childrenPids[i] != -1) {
