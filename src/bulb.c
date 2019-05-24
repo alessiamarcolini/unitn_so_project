@@ -45,26 +45,40 @@ int idSender;
 
 
 void handleSignal(int sig) {
+    printf("ok sig bulb received %d\n", sig);
 
+    sigIn = sig;
     if (sig == SIGUSR2){
-        sigIn = sig;
         return;
     }
 
+    int c;
+    char buf[MAXLEN];
 
     sigIn = sig;
 
 
     char tmp[MAXLEN];
 
-    fdIn = open(fifoIn, O_RDONLY); // open pipe -
+    fdIn = open(fifoIn, O_RDWR); // open pipe -
+    c = sprintf(buf, "---- %d: fdin open: %d!\n", id, fdIn);
+    write(1, buf, c);
 
     while (fdIn < 0){
-        fdIn = open(fifoIn, O_RDONLY);
         printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
+        fdIn = open(fifoIn, O_RDONLY);
     }
 
-    while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1);
+
+    while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1){
+        printf("---- %d: non c'è niente da leggere\n", id);
+    };
+
+
+    c = sprintf(buf, "---- %d: letto: %s!\n", id, tmp);
+    write(1, buf, c);
+    //printf("---- %d: letto: %s!\n", id, tmp);
+
 
     close(fdIn);
 
@@ -77,14 +91,14 @@ void handleSignal(int sig) {
     idSender = atoi(message[2]);
 
 
-    if (idReceiver == id) { // messaggio per me
-
+    if (idReceiver == id || idReceiver == BROADCAST_ID) { // message for me, or "broadcast"
 
         char * commands[MAXLEN];
         tokenizer(message[3], commands, ";");
 
 
         if (commands[0][0] == STATUS_S) {
+
             if (commands[1][0] == OFF_S) {
                 status = OFF;
                 startTime = (time_t) -1;
@@ -172,6 +186,11 @@ void handleSignal(int sig) {
     sigaction(SIGUSR1, &psa1, NULL);
     sigaction(SIGUSR2, &psa1, NULL);
 
+    struct sigaction psa2;
+    psa2.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &psa2, NULL);
+
+
 
 
 
@@ -184,8 +203,9 @@ void handleSignal(int sig) {
 
 
     while (1) {
-        //printf("Letto signal: %d\n", sigIn);
+
         (void) sigsuspend(&myset);
+        printf("Bulb id %d --- Letto signal: %d\n", id, sigIn);
 
     }
 
