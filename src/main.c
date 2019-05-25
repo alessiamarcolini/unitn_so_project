@@ -233,7 +233,12 @@ void handleSignal(int sig){
     for (i=0; i<MAXLEN; i++){
         tmp[i] = '\0';
     }
-    fdIn = open(fifoIn, O_RDONLY | O_NONBLOCK); // open pipe - non-blocking
+    fdIn = open(fifoIn, O_RDWR); // open pipe
+
+    while (fdIn < 0) {
+        printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
+        fdIn = open(fifoIn, O_RDWR);
+    }
 
     read(fdIn, tmp, MAXLEN);
 
@@ -321,8 +326,16 @@ int main(int argc, char *argv[]) {
     //signal(SIGUSR1, handleSignal);
     struct sigaction psa1;
     psa1.sa_handler = handleSignal;
+    psa1.sa_flags = SA_ONSTACK;
     sigaction(SIGUSR1, &psa1, NULL);
     sigaction(SIGUSR2, &psa1, NULL);
+
+    static char stack[SIGSTKSZ];
+    stack_t ss = {
+            .ss_size = SIGSTKSZ,
+            .ss_sp = stack,
+    };
+    sigaltstack(&ss, 0);
 
 
 
@@ -429,6 +442,8 @@ int main(int argc, char *argv[]) {
 
                 } else if (strcmp(tokens[0], "info") == 0) {
                     if (tokens[1] != NULL) {
+
+                        removeNewLine(tokens[1]);
                         status = info(tokens[1], childrenPids, &waitingResponse);
 
                         if (!status) {

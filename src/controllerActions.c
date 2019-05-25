@@ -112,6 +112,7 @@ bool writeAllChildren(char message[MAXLEN], long childrenPids[MAXLEN]){
             }
 
             write(fd, message, strlen(message) + 1);
+            sleep(1);
 
             close(fd);
 

@@ -8,6 +8,12 @@
 
 #include "utils.h"
 
+void removeNewLine(char * str){
+    char *p = strchr(str, '\n');  // finds first, if any, \n
+    if (p != NULL)
+        *p = '\0';
+}
+
 char * getPipename(long pid) {
     char * pipeName = malloc(4 * sizeof(pipeName));
     sprintf(pipeName, "/tmp/pipes/%ld", pid);

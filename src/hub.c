@@ -81,11 +81,11 @@ void handleSignal(int sig) {
 
     char tmp[MAXLEN];
 
-    fdIn = open(fifoIn, O_RDONLY); // open pipe
+    fdIn = open(fifoIn, O_RDWR); // open pipe
 
     while (fdIn < 0) {
         printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
-        fdIn = open(fifoIn, O_RDONLY);
+        fdIn = open(fifoIn, O_RDWR);
     }
 
 
@@ -98,6 +98,8 @@ void handleSignal(int sig) {
 
     char * message[MAXLEN];
 
+    char tmpCopy[MAXLEN];
+    strcpy(tmpCopy, tmp);
     tokenizer(tmp, message, " ");
 
 
@@ -158,14 +160,14 @@ void handleSignal(int sig) {
 
         if (strcmp(message[1], "up") == 0) {
             //  || strcmp(message[1], "down") == 0) {
-            result = forwardUp(tmp);
+            result = forwardUp(tmpCopy);
             if (!result){
                 printf("forward up error\n");
             }
 
 
         } else if (strcmp(message[1], "down") == 0) {
-            result = forwardDown(tmp);
+            result = forwardDown(tmpCopy);
             if (!result){
                 printf("forward down error\n");
             }
@@ -199,8 +201,20 @@ int main(int argc, char * argv[]){
 
     struct sigaction psa1;
     psa1.sa_handler = handleSignal;
+    psa1.sa_flags = SA_ONSTACK;
     sigaction(SIGUSR1, &psa1, NULL);
     sigaction(SIGUSR2, &psa1, NULL);
+
+
+
+    static char stack[SIGSTKSZ];
+    stack_t ss = {
+            .ss_size = SIGSTKSZ,
+            .ss_sp = stack,
+    };
+    sigaltstack(&ss, 0);
+    //sigfillset(&sa.sa_mask);
+
 
 
     sigset_t myset;

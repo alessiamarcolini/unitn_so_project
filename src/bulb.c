@@ -73,7 +73,7 @@ void handleSignal(int sig) {
 
     while (fdIn < 0){
         printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
-        fdIn = open(fifoIn, O_RDONLY);
+        fdIn = open(fifoIn, O_RDWR);
     }
 
 
@@ -191,12 +191,21 @@ void handleSignal(int sig) {
 
     struct sigaction psa1;
     psa1.sa_handler = handleSignal;
+    psa1.sa_flags = SA_ONSTACK;
     sigaction(SIGUSR1, &psa1, NULL);
     sigaction(SIGUSR2, &psa1, NULL);
 
+    //setting "handler" for broken pipes
     struct sigaction psa2;
     psa2.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &psa2, NULL);
+
+    static char stack[SIGSTKSZ];
+    stack_t ss = {
+            .ss_size = SIGSTKSZ,
+            .ss_sp = stack,
+    };
+    sigaltstack(&ss, 0);
 
 
     sigset_t myset;
