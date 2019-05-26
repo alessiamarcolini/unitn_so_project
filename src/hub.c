@@ -12,7 +12,7 @@
 #include "utils.h"
 #include "controllerActions.h"
 
-
+//global variables
 bool result = true;
 
 pid_t pid;
@@ -21,8 +21,9 @@ pid_t ppid;
 int id;
 int deviceType = HUB;
 
-long childrenPids[MAXLEN]; // you can now calculate pipe names
-int firstFreePosition = 0; // of the children's pid array - useful for inserting the next one without scanning all the array
+//a controller device holds a number of children
+long childrenPids[MAXLEN];
+int firstFreePosition = 0;
 
 int fdUp;
 int fdIn;
@@ -40,8 +41,10 @@ int numChildren = 0;
 
 bool waitingResponse = false; // TODO: counter?
 
+//sends a message up the tree (to its parent)
+//returns true if the send was successful
 bool forwardUp(char message[MAXLEN]){
-    printf("forward up\n");
+    //printf("forward up\n");
 
     bool status = true;
 
@@ -51,12 +54,13 @@ bool forwardUp(char message[MAXLEN]){
     sleep(1);
     close(fdUp);
 
-
     return status;
 }
 
+//sends a message down the tree (to all the active children if any)
+//returns true if all sends were successful
 bool forwardDown(char message[MAXLEN]){
-    printf("forward down\n");
+    //printf("forward down\n");
 
     bool status = true;
     status = writeAllChildren(message, childrenPids);
@@ -64,31 +68,28 @@ bool forwardDown(char message[MAXLEN]){
     return status;
 }
 
-
-
-
+//signal handler, behaves differently based on the type of message received
 void handleSignal(int sig) {
 
-    printf("ok sig hub received %d\n", sig);
     sigIn = sig;
+
+    //if the signal was an "ack" then we can simply forward it up without further investigation
     if (sig == SIGUSR2){
         kill(ppid, SIGUSR2);
-
         return;
     }
 
-    sigIn = sig;
-
     char tmp[MAXLEN];
 
-    fdIn = open(fifoIn, O_RDWR); // open pipe
+    //open pipe
+    fdIn = open(fifoIn, O_RDWR);
 
     while (fdIn < 0) {
         printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
         fdIn = open(fifoIn, O_RDWR);
     }
 
-
+    //read message from pipe
     while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1) {
     };
 
@@ -100,17 +101,22 @@ void handleSignal(int sig) {
 
     char tmpCopy[MAXLEN];
     strcpy(tmpCopy, tmp);
+
+    //split incoming string into major tokens to detect main pieces of information
     tokenizer(tmp, message, " ");
 
 
     idReceiver = atoi(message[0]);
     idSender = atoi(message[2]);
 
+    //if the message is for this device then we proceed to execute it
     if (idReceiver == id || idReceiver == BROADCAST_ID) {
         char *commands[MAXLEN];
+
+        //split the last major token into minor tokens to get details about the command
         tokenizer(message[3], commands, ";");
 
-
+        //if it's a status command then we need to send a similar command to all of our children
         if (commands[0][0] == STATUS_S) {
             int tmpStatus;
 
@@ -120,23 +126,27 @@ void handleSignal(int sig) {
             if (commands[1][0] == ON_S) {
                 tmpStatus = ON;
 
-            } // manda a tutti
+            }
 
             result = switchLabel(BROADCAST_ID_S, STATUS_S, tmpStatus, childrenPids);
 
             if (!result) {
                 printf("Switch error\n");
             }
-
-        } else if (commands[0][0] == INFO_S) { // TODO: chiedere a tutti
-            result = info(BROADCAST_ID_S, childrenPids, &waitingResponse); // TODO: counter invece che bool
+        //if it's an info command then we need to ask all of our children for their status in order to elaborate and send a response
+        } else if (commands[0][0] == INFO_S) {
+            printf("Operation not implemented yet\n");
+            /*
+            result = info(BROADCAST_ID_S, childrenPids, &waitingResponse); // TODO: counter variable instead of bool
             if (!result){
                 printf("info error\n");
             }
 
-            // TODO: gestire risposte
+            // TODO: manage responses
 
-        } else if (commands[0][0] == SPAWN_S) { // TODO: non riceve bene
+             */
+        //if it's a spawn command then we create the desired device and link it to the current hub
+        } else if (commands[0][0] == SPAWN_S) {
 
             char *idChild = commands[1];
             int childType = atoi(commands[2]);
@@ -144,32 +154,31 @@ void handleSignal(int sig) {
             pid_t pidChild = spawn(childType, idChild, childrenPids, &firstFreePosition);
             if (pidChild == -1) {
                 result = false;
-                printf("spawn error\n");
+                printf("Error: unable to create a new process\n");
             } else {
                 numChildren++;
 
             }
         }
 
+    //the command is not for this device, so we forward it up or down
+    } else {
 
-    } else { // not for me - then forward
-        // controlla up o down
+        //int c = sprintf(buf, "---- %d: not for me: %s!\n", id, tmp);
+        //write(1, buf, c);
 
-        int c = sprintf(buf, "---- %d: not for me: %s!\n", id, tmp);
-        write(1, buf, c);
-
+        //if the message is travelling up the tree then we forward it to our parent
         if (strcmp(message[1], "up") == 0) {
-            //  || strcmp(message[1], "down") == 0) {
             result = forwardUp(tmpCopy);
             if (!result){
-                printf("forward up error\n");
+                printf("Internal forwarding up message error\n");
             }
 
-
+        //if the message is travelling down the tree then we forward it to all our children
         } else if (strcmp(message[1], "down") == 0) {
             result = forwardDown(tmpCopy);
             if (!result){
-                printf("forward down error\n");
+                printf("Internal forwarding down message error\n");
             }
 
         } else {
@@ -178,13 +187,11 @@ void handleSignal(int sig) {
             write(1, alert, c);
 
         }
-
     }
-
 }
 
 
-
+//prepare the device and set it up to receive messages
 int main(int argc, char * argv[]){
 
     initChildren(childrenPids);
@@ -194,18 +201,15 @@ int main(int argc, char * argv[]){
 
     id = atoi(argv[1]);
 
-    fifoIn = getPipename((long) pid); // in-pipe read only
-    fifoUp = getPipename((long) ppid); // out-pipe with my parent write only
+    fifoIn = getPipename((long) pid); //in-pipe
+    fifoUp = getPipename((long) ppid); //out-pipe with my parent
 
-
-
+    //set up signal handlers
     struct sigaction psa1;
     psa1.sa_handler = handleSignal;
     psa1.sa_flags = SA_ONSTACK;
     sigaction(SIGUSR1, &psa1, NULL);
     sigaction(SIGUSR2, &psa1, NULL);
-
-
 
     static char stack[SIGSTKSZ];
     stack_t ss = {
@@ -213,31 +217,20 @@ int main(int argc, char * argv[]){
             .ss_sp = stack,
     };
     sigaltstack(&ss, 0);
-    //sigfillset(&sa.sa_mask);
-
-
 
     sigset_t myset;
     (void) sigemptyset(&myset);
 
+    //send parent an "ack" signal to tell it that this device is up and running, ready to handle messages
+    kill(ppid, SIGUSR2);
 
-    kill(ppid, SIGUSR2); // I'm alive
-
-
+    //wait for signals
     while (1) {
 
         (void) sigsuspend(&myset);
         if (!result){
             printf("Error\n");
         }
-        else {
-            printf("Hub id %d --- Letto signal: %d\n", id, sigIn);
-        }
-
     }
-
-
-
-
     return 0;
 }

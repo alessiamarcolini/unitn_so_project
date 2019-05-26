@@ -1,7 +1,3 @@
-//
-// Created by Alessia Marcolini on 2019-05-01.
-//
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -15,14 +11,7 @@
 
 #include "utils.h"
 
-
-
-// protocol first try
-
-// [Receiver] [up/down] [Sender] <command;specs>
-
-
-
+//status global variables such as registers and ids
 int status;
 time_t startTime = (time_t) -1;
 
@@ -34,7 +23,8 @@ int deviceType = BULB;
 pid_t pid;
 pid_t ppid;
 
-int fdUp; // pipe file descriptor
+//file descriptors
+int fdUp;
 int fdIn;
 
 char * fifoIn;
@@ -43,19 +33,14 @@ char * fifoUp;
 int idReceiver;
 int idSender;
 
-
+//signal handler, behaves in different ways based on the incoming fifo content
 void handleSignal(int sig) {
-
-    printf("ok sig bulb received %d\n", sig);
-
+    //store signal number to global variable
     sigIn = sig;
 
     if (sig == SIGUSR2){
         return;
     }
-    /*char alert[MAXLEN];
-    int c = sprintf(alert, "SONO BULB %d PID %d SIG %d\n", id, (int) pid, (int) sig);
-    write(1, alert, c);*/
 
     int c;
     char buf[MAXLEN];
@@ -65,49 +50,39 @@ void handleSignal(int sig) {
 
     char tmp[MAXLEN];
 
-    fdIn = open(fifoIn, O_RDWR); // open pipe -
+    fdIn = open(fifoIn, O_RDWR); //open pipe
 
-    c = sprintf(buf, "---- %d: fdin open: %d!\n", id, fdIn);
-    write(1, buf, c);
+    //c = sprintf(buf, "---- %d: fdin open: %d!\n", id, fdIn);
+    //write(1, buf, c);
 
-
+    //retry to open pipe
     while (fdIn < 0){
         printf("Error opening pipe to bulb with id: %d and pid: %ld", id, (long) pid);
         fdIn = open(fifoIn, O_RDWR);
+        sleep(1);
     }
 
-
-    while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1){
-        printf("---- %d: non c'è niente da leggere\n", id);
-    };
-
-
-    c = sprintf(buf, "---- %d: letto: %s!\n", id, tmp);
-    write(1, buf, c);
-    //printf("---- %d: letto: %s!\n", id, tmp);
-
-
-    //char buf[MAXLEN+30];
-    //int c = sprintf(buf, "---- %d: letto: %s!\n", id, tmp);
-    //write(1, buf, c);
-    //printf("---- %d: letto: %s!\n", id, tmp);
-
+    //try to read the incoming message and store it in tmp
+    while (read(fdIn, tmp, MAXLEN | O_NONBLOCK) == -1);
 
     close(fdIn);
     char * message[MAXLEN];
-    tokenizer(tmp, message, " ");
 
+    //splits the incoming message into 4 major tokens
+    tokenizer(tmp, message, " ");
 
     idReceiver = atoi(message[0]);
     idSender = atoi(message[2]);
 
-
+    //if the message is intended to be opened in this device then it is opened inside this statement
+    //there is no "else" statement since this is an end device, so no message should be forwarded in any direction
     if (idReceiver == id || idReceiver == BROADCAST_ID) { // message for me, or "broadcast"
 
         char * commands[MAXLEN];
+        //splits the last major token, which contained the details of the command
         tokenizer(message[3], commands, ";");
 
-
+        //handle switch status command
         if (commands[0][0] == STATUS_S) {
 
             if (commands[1][0] == OFF_S) {
@@ -116,20 +91,18 @@ void handleSignal(int sig) {
             }
             if (commands[1][0] == ON_S) {
                 status = ON;
-                startTime = time(NULL); // get current timestamp
-
+                startTime = time(NULL); //get current timestamp
             }
 
         }
 
 
-
+        //respond to a request for info command
         else if (commands[0][0] == INFO_S){
 
-
-            // preparing message
             char msg[MAXLEN];
 
+            //active time tells how many seconds elapsed since the last time the bulb was turned on
             int activeTime;
             if (startTime != (time_t) -1){
                 activeTime = (int) difftime(time(NULL), startTime);
@@ -138,39 +111,26 @@ void handleSignal(int sig) {
                 activeTime = 0;
             }
 
-
             sprintf(msg, "%d up %d %d;%d;%d;%d", idSender, id, INFO_BACK, deviceType, status, activeTime);
 
-
-
-
-
+            //open fifo, tell parent to listen (kill), write into fifo and close it.
             fdUp = open(fifoUp, O_RDWR);
 
-
             kill(ppid, SIGUSR1);
-
 
             write(fdUp, msg, strlen(msg) + 1);
             sleep(1);
             close(fdUp);
-            
-
         }
-
-
+        //command is under construction or not allowed
         else {
-            printf("Command not allowed.\n");  // send back switch error
+            printf("Command not allowed.\n");
         }
-
-
-
     }
     return;
 }
 
-    int main(int argc, char * argv[]){
-
+int main(int argc, char * argv[]){
 
     status = OFF;
 
@@ -180,15 +140,10 @@ void handleSignal(int sig) {
     id = atoi(argv[1]);
 
     // FIFO file path
-    fifoIn = getPipename((long) pid); // in-pipe read only
-    fifoUp = getPipename((long) ppid); // out-pipe with my parent write only
+    fifoIn = getPipename((long) pid); //in-pipe
+    fifoUp = getPipename((long) ppid); //out-pipe with my parent
 
-    //signal(SIGUSR1, handleSignal);
-    //signal(SIGUSR2, handleSignalKnock);
-
-
-
-
+    //set up signal handler
     struct sigaction psa1;
     psa1.sa_handler = handleSignal;
     psa1.sa_flags = SA_ONSTACK;
@@ -211,15 +166,11 @@ void handleSignal(int sig) {
     sigset_t myset;
     (void) sigemptyset(&myset);
 
-    //setting "handler" for broken pipes
-
-
-    kill(ppid, SIGUSR2); // I'm alive
+    //this kill tells parent that this device is ready to handle signals
+    kill(ppid, SIGUSR2);
 
     while (1) {
-
         (void) sigsuspend(&myset);
-        printf("Bulb id %d --- Letto signal: %d\n", id, sigIn);
 
     }
 

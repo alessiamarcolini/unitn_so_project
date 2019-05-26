@@ -1,27 +1,27 @@
-//
-// Created by Alessia Marcolini on 2019-05-13.
-//
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "utils.h"
 
+//this library contains methods that are useful for most devices in the system
+
+//string sanitization function
 void removeNewLine(char * str){
     char *p = strchr(str, '\n');  // finds first, if any, \n
     if (p != NULL)
         *p = '\0';
 }
 
+//returns a pipename given a pid
 char * getPipename(long pid) {
     char * pipeName = malloc(4 * sizeof(pipeName));
     sprintf(pipeName, "/tmp/pipes/%ld", pid);
     return pipeName;
 }
 
+//tokenizes a string into tokens delimited by a given delimiter char
 void tokenizer(char * buffer, char ** tokens, char * delimiter){
-
 
     // split
     char * delim = delimiter;
@@ -30,7 +30,6 @@ void tokenizer(char * buffer, char ** tokens, char * delimiter){
     int tokenIndex;
     ptr = strtok(buffer, delim);
     tokens[0] = ptr;
-
 
     tokenIndex = 1;
 
@@ -42,6 +41,7 @@ void tokenizer(char * buffer, char ** tokens, char * delimiter){
     }
 }
 
+//find first available position (if any) in a given array of pids and returns it
 int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition){
     int i;
     for (i=lastPosition; i<MAXLEN; i++){
@@ -54,6 +54,7 @@ int calculateNewFreePosition(long children_pids[MAXLEN], int lastPosition){
 
 }
 
+//initializes all positions of children pids array to -1
 void initChildren(long childrenPids[MAXLEN]){
     // init children structure
     int i;
@@ -62,6 +63,7 @@ void initChildren(long childrenPids[MAXLEN]){
     }
 }
 
+//prints an array of pids (only the valorized ones)
 void printChildren(long childrenPids[MAXLEN]){
     int i;
     for (i=0; i<MAXLEN; i++){
