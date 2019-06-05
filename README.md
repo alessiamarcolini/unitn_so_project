@@ -17,3 +17,5 @@ Implement the emulation of a home automation system so that each device is repre
 * Alessia Marcolini - 194274
 * Matteo Slaviero - 193934
 * Nicolò Gottardello - 187550
+
+⚠️ WIP
